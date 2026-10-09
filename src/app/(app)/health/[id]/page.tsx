@@ -27,8 +27,8 @@ export default function ChildHealth() {
     <div className="card"><div className="mb-2 flex items-center justify-between"><h2 className="font-semibold">Biểu đồ tăng trưởng</h2><div className="flex gap-3 text-xs"><span className="text-peach-600">● Cân nặng</span><span className="text-sky-500">┅ Chiều cao</span></div></div><GrowthChart data={g} />
       {staff && <p className="mt-1 text-xs text-ink-500">Phân loại BMI chỉ mang tính tham khảo cho trẻ 3–6 tuổi.</p>}</div>
     {c.healthNotes && <div className="card text-sm"><b>Ghi chú sức khỏe:</b> {c.healthNotes}</div>}
-    {g.length > 0 && <div className="card"><h2 className="mb-2 font-semibold">Lịch sử số đo</h2><table className="w-full text-sm"><thead className="text-ink-500"><tr><th className="text-left">Ngày</th><th>Cao</th><th>Nặng</th><th>BMI</th>{staff && <th></th>}</tr></thead>
-      <tbody>{[...g].reverse().map(x => <tr key={x.id} className="border-t border-ink-100 text-center" data-testid="growth-row"><td className="py-2 text-left">{vnDate(x.date)}{x.note && <div className="text-xs text-ink-500">{x.note}</div>}</td><td>{x.heightCm ?? <span className="text-ink-500">Chưa đo</span>}</td><td>{x.weightKg ?? <span className="text-ink-500">Chưa cân</span>}</td><td>{x.bmi ?? "–"}</td>
+    {g.length > 0 && <div className="card"><h2 className="mb-2 font-semibold">Lịch sử số đo</h2><table className="w-full text-sm"><thead className="text-ink-500"><tr><th className="text-left">Ngày</th><th>Cao</th><th>Nặng</th>{staff && <th>BMI</th>}{staff && <th></th>}</tr></thead>
+      <tbody>{[...g].reverse().map(x => <tr key={x.id} className="border-t border-ink-100 text-center" data-testid="growth-row"><td className="py-2 text-left">{vnDate(x.date)}{x.note && <div className="text-xs text-ink-500">{x.note}</div>}</td><td>{x.heightCm ?? <span className="text-ink-500">Chưa đo</span>}</td><td>{x.weightKg ?? <span className="text-ink-500">Chưa cân</span>}</td>{staff && <td>{x.bmi ?? "–"}</td>}
         {staff && <td><button className="min-h-12 px-3 text-rose-500" onClick={() => del(x.id)} aria-label="Xóa">✕</button></td>}</tr>)}</tbody></table></div>}
   </div>;
 }

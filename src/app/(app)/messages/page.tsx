@@ -167,7 +167,7 @@ function Sent({ abs, meds, lates, onChange }: { abs: Absence[]; meds: Medicine[]
 /** "Đã qua": read-only past 30 days, grouped by month. refundEligible shown exactly as the server sent it; confirmed school holidays excluded. */
 /** "Đã qua" for medicine / late pickup tabs: read-only, last 30 days, ink-500. */
 function PastList({ title, empty, rows }: { title: string; empty: string; rows: { key: string; date: string; text: string; sub: string }[] }) {
-  return <section className="space-y-2 text-ink-500" data-testid={`past-${title}`}><h2 className="text-sm font-semibold uppercase tracking-wide">Đã qua</h2>
+  return <section className="space-y-2 text-ink-500" data-testid={`past-${title}`}><h2 className="font-semibold text-ink-700">Trong 30 ngày qua</h2>
     {!rows.length ? <p className="text-sm">{empty}</p> : <div className="card space-y-1">{rows.map(r => <div key={r.key} className="flex min-h-12 items-center gap-3 border-t border-ink-100 py-1 text-sm first:border-t-0">
       <b className="w-24 shrink-0 font-semibold">{vnD(r.date)}</b><span>{r.text}{r.sub && <span className="block text-xs">{r.sub}</span>}</span></div>)}</div>}</section>;
 }
