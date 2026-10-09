@@ -28,7 +28,7 @@ export default function AttendancePage() {
   useEffect(() => { if (holiday) getTodayClosure().then(c => setClosure(c && c.id === holiday.id ? c : null)); else setClosure(null) }, [holiday]); const [override, setOverride] = useState(false);
   const [rows, setRows] = useState<Row[]>([]); const [msgs, setMsgs] = useState<ClassMessages | null>(null); const [msg, setMsg] = useState(""); const [saving, setSaving] = useState(false);
   useEffect(() => { api.classes().then(c => { const mine = me.role === "teacher" ? c.filter(x => me.classIds?.includes(x.id)) : c; setClasses(mine); const want = new URLSearchParams(window.location.search).get("class"); setClassId(mine.find(x => x.id === want)?.id ?? mine[0]?.id ?? "") }) }, [me.role, me.classIds]);
-  const load = useCallback(async () => { if (!classId) return; setMsg("");
+  const load = useCallback(async (keepMsg = false) => { if (!classId) return; if (!keepMsg) setMsg("");
     try { const [s, m, ft] = await Promise.all([http.get<{ items: Sheet[]; holiday?: { id: string; name: string; status?: string } | null }>(`/classes/${classId}/attendance?date=${today}`),
         msgFeatures().then(ft => ft.classMessages ? classMessages(classId, today) : emptyClassMessages(today)), msgFeatures()]);
       setMsgs(m); setHoliday(s.holiday && s.holiday.status !== "pending" ? s.holiday : null); setOverride(ft.overrideAbsence); // only confirmed holidays count
@@ -58,7 +58,7 @@ export default function AttendancePage() {
       return { childId: r.childId, status, note, ...reason, ...(over.includes(r) ? { overrideAbsence: true } : {}) } };
     try { const res = await http.put<{ skipped?: { childId: string; reason: string }[] } | null>(`/classes/${classId}/attendance`, { date: today, items: dirty.map(item) });
       const sk = res?.skipped ?? [];
-      setMsg(`Đã lưu điểm danh ✔ (${dirty.length - sk.length} bé)${sk.length ? ` · bỏ qua ${sk.length} bé đã báo nghỉ: ${sk.map(x => rows.find(r => r.childId === x.childId)?.fullName ?? "").join(", ")}` : ""}`); load() }
+      setMsg(`✓ Đã lưu điểm danh (${dirty.length - sk.length} bé)${sk.length ? ` · bỏ qua ${sk.length} bé đã báo nghỉ: ${sk.map(x => rows.find(r => r.childId === x.childId)?.fullName ?? "").join(", ")}` : ""}`); load(true) }
     catch (e) { setMsg(msgErrorText(e)) } finally { setSaving(false) } }
   const medOf = (id: string) => msgs?.medicines.some(m => m.childId === id); const lateOf = (id: string) => msgs?.latePickups.find(l => l.childId === id);
   const nMsgs = msgs ? msgs.absences.filter(a => absentOn(a, today)).length + msgs.medicines.length + msgs.latePickups.length : 0;
@@ -86,7 +86,7 @@ export default function AttendancePage() {
         return <p className="text-xs text-sky-500" data-testid="att-excused-by">{by && <span className="mr-1 rounded-full bg-sky-100 px-2 py-0.5 font-semibold">{by === "parent" ? "PH báo" : "Cô ghi"}</span>}{r.note}</p> })()}
       {r.st === "absent" && <div className="flex flex-wrap gap-1" data-testid="att-reasons">{ABSENT_CHIPS.map(c => <button key={c} onClick={() => set(r.childId, { note: c })} className={`min-h-12 rounded-full px-3 text-xs ${r.note === c ? (c === "Không báo" ? "bg-rose-500 text-white" : "bg-ink-900 text-white") : "bg-ink-100"}`}>{c}</button>)}
         <button onClick={() => set(r.childId, { st: "excused" })} className="min-h-12 rounded-full bg-sky-100 px-3 text-xs text-sky-500">Có phép</button></div>}</div>)}</div>
-    {msg && <p className="text-center text-sm" data-testid="att-msg">{msg}</p>}
+    {msg && <p role="status" className={`rounded-xl p-3 text-center text-sm font-semibold ${msg.startsWith("✓") ? "bg-mint-50 text-mint-700" : "bg-rose-100 text-rose-500"}`} data-testid="att-msg">{msg}</p>}
     <button className="btn sticky bottom-20 min-h-14 w-full !bg-peach-500 disabled:!bg-ink-100 shadow-lg md:bottom-4" disabled={saving || !dirty.length || !!holiday} onClick={save} data-testid="att-save">{saving ? "Đang lưu…" : `Lưu điểm danh${dirty.length ? ` (${dirty.length})` : ""}`}</button>
     <Link href="/pickups" className="block text-center text-sm text-mint-700 underline">Giao bé ›</Link>
   </div>;
