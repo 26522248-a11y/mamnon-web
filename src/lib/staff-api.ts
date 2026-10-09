@@ -69,3 +69,6 @@ export const ST_UI: Record<AttStatus, { cls: string; label: string }> = {
   ok: { cls: "bg-mint-100 text-mint-700", label: "Đủ" }, late: { cls: "bg-sun-100 text-ink-900", label: "Muộn" },
   leave: { cls: "bg-sky-100 text-sky-500", label: "Phép" }, absent: { cls: "bg-rose-100 text-rose-500", label: "Vắng" },
   sub: { cls: "bg-peach-100 text-peach-500", label: "Trông thay" }, none: { cls: "bg-ink-100 text-ink-500", label: "—" } };
+
+/** G5: tên ca hiển thị là "Ca ngày" (dữ liệu cũ còn "Ca sáng"). */
+export const shiftLabel = (s?: string) => (!s || /^ca sáng$/i.test(s.trim()) ? "Ca ngày" : s);
