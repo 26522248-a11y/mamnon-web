@@ -1,12 +1,13 @@
 "use client";
 /** U3: chi tiết cho phụ huynh – điểm danh & nhật ký 14 ngày gần nhất của bé. /today/log/:id?tab=attendance|notes */
-import { useEffect, useState } from "react"; import Link from "next/link"; import { http, todayStr } from "@/lib/api"; import { vnDate } from "@/lib/fmt"; import { EAT, sleepText } from "../../../notes/shared";
+import { useEffect, useState } from "react"; import Link from "next/link"; import { useParams } from "next/navigation"; import { http, todayStr } from "@/lib/api"; import { vnDate } from "@/lib/fmt"; import { EAT, sleepText } from "../../../notes/shared";
 type Att = { date: string; status: string | null; note: string | null; pickup: { pickedUpByName: string; pickedUpAt: string } | null };
 type Note = { date: string; eating: string | null; sleepMinutes: number | null; mood: string | null; toilet: string | null; note: string | null };
 const ST: Record<string, [string, string]> = { present: ["bg-mint-100 text-mint-700", "Có mặt"], late: ["bg-sun-100 text-ink-900", "Đến muộn"], absent: ["bg-rose-100 text-rose-500", "Nghỉ"] };
 const back = (d: string, n: number) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() - n); return x.toISOString().slice(0, 10) };
 const wd = (d: string) => new Date(d + "T00:00:00Z").toLocaleDateString("vi-VN", { weekday: "short", timeZone: "UTC" });
-export default function ChildLog({ params }: { params: { id: string } }) {
+export default function ChildLog() {
+  const params = useParams<{ id: string }>(); // Next 15: page props.params is a Promise; the hook stays sync in client pages
   const [tab, setTab] = useState<"attendance" | "notes">("attendance"); const [att, setAtt] = useState<Att[] | null>(null); const [notes, setNotes] = useState<Note[] | null>(null);
   useEffect(() => { const t = new URLSearchParams(window.location.search).get("tab"); if (t === "notes") setTab("notes") }, []);
   useEffect(() => { const to = todayStr(), from = back(to, 14);
