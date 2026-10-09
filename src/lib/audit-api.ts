@@ -32,7 +32,7 @@ export const KNOWN_ACTIONS: [string, string][] = [
 ];
 export async function auditActions(): Promise<[string, string][]> { return KNOWN_ACTIONS }
 const ENTITY_LABEL: Record<string, string> = { finance: "Thu chi", transfer_claim: "Chuyển khoản", staff_leave: "Nghỉ phép", staff_attendance: "Chấm công", substitution: "Trông thay",
-  authorized_picker: "Người đón hộ", pickup_duty: "Trực đón", pickup: "Đón bé", child: "Hồ sơ bé", guardian: "Phụ huynh", user: "Tài khoản", holiday: "Ngày nghỉ", photo: "Ảnh lớp", photo_post: "Ảnh lớp" };
+  authorized_picker: "Người đón hộ", pickup_duty: "Trực đón", pickup: "Giao bé", child: "Hồ sơ bé", guardian: "Phụ huynh", user: "Tài khoản", holiday: "Ngày nghỉ", photo: "Ảnh lớp", photo_post: "Ảnh lớp" };
 const VERB_LABEL: Record<string, string> = { create: "Tạo", update: "Sửa", delete: "Xoá", remove: "Gỡ", approve: "Duyệt", reject: "Từ chối", cancel: "Huỷ", void: "Huỷ", confirm: "Xác nhận", assign: "Phân công", request: "Yêu cầu" };
 /** H2: always Vietnamese – known list first, else "<nhóm> · <việc>" (never the raw technical code). */
 export const actionLabel = (a: string) => { const k = KNOWN_ACTIONS.find(x => x[0] === a)?.[1]; if (k) return k;
