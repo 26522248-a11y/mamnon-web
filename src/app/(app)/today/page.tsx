@@ -41,6 +41,8 @@ export default function Today() {
   if (!k) return <p>Đang tải…</p>;
   const st = att === undefined ? ["bg-ink-100 text-ink-500 animate-pulse", "Đang tải…"] : ST[att?.status ?? ""] ?? ["border-2 border-dashed border-ink-300 text-ink-500", "Cô chưa điểm danh"]; const todayMenu = menu?.days.find(x => x.date === d);
   const here = att?.status === "present" || att?.status === "late";
+  /** D2: bé đã được đón → thay ô trạng thái điểm danh bằng dòng "Đã được … đón", ẩn "Con nghỉ hôm nay". */
+  const gone = !!att?.pickup?.pickedUpAt;
   async function sendAbsence() { if (absBusy) return; setAbsBusy(true); setAbsMsg("");
     try { const r = await reportAbsence(k.id, { from: d, reason: absReason ?? "other", ...(absNote.trim() ? { note: absNote.trim() } : {}) }); setAbs(r); setAskAbs(false); setAbsNote(""); setAbsReason(null); load() }
     catch (x) { const e = x as Error & { errorCode?: string }; if (e.errorCode === "ABSENCE_OVERLAP") { setAskAbs(false); load() } else setAbsMsg(ABSENCE_ERR[e.errorCode ?? ""] ?? e.message) } finally { setAbsBusy(false) } }
@@ -61,10 +63,11 @@ export default function Today() {
     <div className="card flex items-center gap-4 bg-gradient-to-br from-mint-100 to-peach-50"><Photo url={k.photoUrl} id={k.id} withdrawn={k.status === "withdrawn"} size={72} />
       <div><div className="text-sm text-ink-500">Bé hôm nay · {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric", timeZone: "Asia/Ho_Chi_Minh" })}</div><h1 className="text-xl font-bold">{k.fullName}</h1><div className="text-sm">{k.className}</div></div></div>
     <SubstituteCard childId={k.id} classId={k.classId} childName={`bé ${k.fullName.split(" ").pop()}`} today={d} />
-    <Link href={`/today/log/${k.id}?tab=attendance`} className={`block rounded-2xl p-4 text-center text-lg font-semibold ${st[0]}`} data-testid="tile-attendance">{st[1]} <span className="text-sm font-normal opacity-80">›</span></Link>
+    {gone ? <PickupLine pickup={att?.pickup} reqs={feed.filter(r => r.childId === k.id)} card />
+    : <Link href={`/today/log/${k.id}?tab=attendance`} className={`block rounded-2xl p-4 text-center text-lg font-semibold ${st[0]}`} data-testid="tile-attendance">{st[1]} <span className="text-sm font-normal opacity-80">›</span></Link>}
     {abs || att?.status === "absent" ? <div className="card flex items-center justify-between gap-2 border-l-4 border-sky-500" data-testid="absence-reported"><span>🏠 <b>Đã báo nghỉ hôm nay</b>{abs && <span className="block text-sm text-ink-500">{ABSENCE_REASONS.find(r => r[0] === abs.reason)?.[1]}{abs.note ? ` · ${abs.note}` : ""}</span>}</span>
         {abs?.cancellable?.includes(d) && <button className="min-h-12 shrink-0 px-2 text-sm text-rose-500" onClick={undoAbsence} data-testid="absence-undo">Huỷ</button>}</div>
-      : <button className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-peach-500 px-4 text-[17px] font-bold text-white shadow-card active:scale-95" onClick={() => { setAskAbs(true); setAbsMsg("") }} data-testid="btn-absent-today">🏠 Con nghỉ hôm nay</button>}
+      : !gone && <button className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-peach-500 px-4 text-[17px] font-bold text-white shadow-card active:scale-95" onClick={() => { setAskAbs(true); setAbsMsg("") }} data-testid="btn-absent-today">🏠 Con nghỉ hôm nay</button>}
     {absMsg && !askAbs && <p className="rounded-2xl bg-rose-100 p-3 text-sm text-rose-500" data-testid="absence-msg">{absMsg}</p>}
     {askAbs && <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink-900/40 md:items-center" onClick={() => setAskAbs(false)}>
       <div role="dialog" aria-label="Báo nghỉ hôm nay" className="w-full max-w-md space-y-3 rounded-t-3xl bg-white p-5 pb-8 text-[17px] md:rounded-3xl" onClick={e => e.stopPropagation()} data-testid="absence-dialog">
@@ -76,7 +79,7 @@ export default function Today() {
         {absMsg && <p className="rounded-xl bg-rose-100 p-2 text-sm text-rose-500" data-testid="absence-dialog-msg">{absMsg}</p>}
         <div className="grid grid-cols-2 gap-2"><button className="min-h-12 rounded-xl bg-ink-100 font-semibold" onClick={() => setAskAbs(false)}>Thôi</button>
           <button className="min-h-12 rounded-xl bg-sky-500 font-semibold text-white disabled:opacity-60" disabled={absBusy} onClick={sendAbsence} data-testid="absence-confirm">{absBusy ? "Đang gửi…" : "Xác nhận báo nghỉ"}</button></div></div></div>}
-    <PickupLine pickup={att?.pickup} reqs={feed.filter(r => r.childId === k.id)} card />
+    {!gone && <PickupLine pickup={att?.pickup} reqs={feed.filter(r => r.childId === k.id)} card />}
     <Link href="/messages" className="card flex min-h-12 items-center justify-between" data-testid="link-messages"><span>💬 Nhắn cô: báo nghỉ, dặn thuốc, đón muộn</span><span className="text-mint-700">›</span></Link>
     <Link href="/account#consent" className="card flex min-h-12 items-center justify-between" data-testid="link-consent"><span>📸 Cho cô đăng hình con lên nhóm lớp<span className="block text-[15px] text-ink-500">Xem hoặc đổi Có / Không trong Tài khoản</span></span><span className="text-ink-300">›</span></Link>
     <Link href="/pickups/delegates" className="card flex min-h-12 items-center justify-between" data-testid="link-delegates"><span>🛡️ Người được đón bé</span><span className="text-mint-700">Quản lý ›</span></Link>
