@@ -3,7 +3,7 @@
  * Contract: /workspace/mamnon-backend/docs/round2-api.md (09/10). Pages import only from here. msgFeatures() still gates each
  * part via Swagger so 2a/2b can ship separately.
  */
-import { API_ORIGIN, http, softGet } from "@/lib/api";
+import { API_ORIGIN, http, softGet, viMsg } from "@/lib/api";
 /** Backend list endpoints return {items: T[]} (69180e6); accept a bare array too. */
 const unwrap = <T,>(r: T[] | { items?: T[] } | null | undefined): T[] => Array.isArray(r) ? r : r?.items ?? [];
 const list = <T,>(p: string) => http.get<T[] | { items: T[] }>(p).then(r => unwrap<T>(r));
@@ -120,7 +120,7 @@ export const cancelLatePickup = (id: string) => http.del<LatePickup>(`/late-pick
 export const LATE_ERR: Record<string, string> = { OUTSIDE_SCHOOL_HOURS: "Ngoài giờ trường trông trẻ", TIME_PASSED: "Giờ đón đã qua", LATE_PICKUP_EXISTS: "Đã có báo đón muộn cho ngày này", DATE_IN_PAST: "Không chọn ngày đã qua", DATE_TOO_FAR: "Chỉ báo trước tối đa 30 ngày", NOT_SCHOOL_DAY: "Ngày cuối tuần, trường nghỉ", SCHOOL_HOLIDAY: "Ngày này trường nghỉ" };
 /** Friendly text for any round-2 error code; falls back to the server message. */
 export const msgErrorText = (e: unknown) => { const c = (e as { errorCode?: string })?.errorCode ?? "";
-  return ABSENCE_ERR[c] ?? MEDICINE_ERR[c] ?? LATE_ERR[c] ?? HOLIDAY_ERR[c] ?? (e as Error)?.message ?? "Có lỗi xảy ra, vui lòng thử lại" };
+  return ABSENCE_ERR[c] ?? MEDICINE_ERR[c] ?? LATE_ERR[c] ?? HOLIDAY_ERR[c] ?? viMsg((e as { code?: unknown })?.code === undefined || typeof (e as { code?: unknown }).code !== "number" ? 0 : (e as { code: number }).code, (e as Error)?.message) };
 
 // ── teacher: class feed pinned on top of Điểm danh (§6) ──
 export type ClassMessages = { date: string; holiday: { id: string; name: string; kind?: Holiday["kind"]; reason?: string | null } | null; absences: Absence[]; medicines: Medicine[]; latePickups: LatePickup[];

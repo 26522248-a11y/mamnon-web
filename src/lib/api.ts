@@ -8,10 +8,23 @@ async function refresh(): Promise<boolean> {
     .finally(() => { refreshing = null });
   return refreshing;
 }
+/** G10: không bao giờ hiện câu lỗi tiếng Anh/kỹ thuật cho người dùng. */
+export const NET_ERR = "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại nhé.";
+export function viMsg(status: number, msg?: string | null): string {
+  if (status === 0) return NET_ERR;
+  if (status >= 500) return "Máy chủ đang bận hoặc gặp sự cố. Vui lòng thử lại sau ít phút.";
+  if (msg && !/^[\x00-\x7F]*$/.test(msg)) return msg; // đã là tiếng Việt
+  if (status === 403) return "Bạn không có quyền làm việc này.";
+  if (status === 404) return "Không tìm thấy dữ liệu, có thể đã bị xoá.";
+  if (status === 413) return "Tệp quá lớn, hãy chọn tệp nhỏ hơn.";
+  if (status === 429) return "Thao tác quá nhanh, đợi một chút rồi thử lại.";
+  return "Có lỗi xảy ra, vui lòng thử lại.";
+}
+const bodyMsg = (b: { message?: string | string[] } | null | undefined) => Array.isArray(b?.message) ? b.message.join("; ") : b?.message;
 async function req<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   if (!token && retry) await refresh();
-  const r = await fetch(BASE + path, { ...init, credentials: "include",
-    headers: { ...(typeof FormData !== "undefined" && init.body instanceof FormData ? {} : { "content-type": "application/json" }), ...(token ? { authorization: "Bearer " + token } : {}), ...init.headers } });
+  let r: Response; try { r = await fetch(BASE + path, { ...init, credentials: "include",
+    headers: { ...(typeof FormData !== "undefined" && init.body instanceof FormData ? {} : { "content-type": "application/json" }), ...(token ? { authorization: "Bearer " + token } : {}), ...init.headers } }) } catch { throw new ApiError(0, NET_ERR) }
   if (r.status === 401 && retry && await refresh()) return req<T>(path, init, false);
   if (r.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/login")) { sessionStorage.removeItem("me"); location.href = "/login" }
   const body = r.status === 204 ? null : await r.json().catch(() => null);
@@ -19,7 +32,7 @@ async function req<T>(path: string, init: RequestInit = {}, retry = true): Promi
   if (r.status === 403 && body?.code === "PASSWORD_CHANGE_REQUIRED" && typeof window !== "undefined") {
     const me = sessionStorage.getItem("me"); if (me) sessionStorage.setItem("me", JSON.stringify({ ...JSON.parse(me), mustChangePassword: true }));
     if (!location.pathname.startsWith("/change-password")) location.href = "/change-password" }
-  if (!r.ok) throw new ApiError(r.status, (Array.isArray(body?.message) ? body.message.join("; ") : body?.message) ?? "Có lỗi xảy ra, vui lòng thử lại", body?.details, body?.code);
+  if (!r.ok) throw new ApiError(r.status, viMsg(r.status, bodyMsg(body)), body?.details, body?.code);
   return body as T;
 }
 const qs = (o: Record<string, unknown>) => new URLSearchParams(Object.entries(o).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => [k, String(v)])).toString();
@@ -57,7 +70,7 @@ export const http = {
       x.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.round(e.loaded * 100 / e.total)) };
       x.onload = () => { let b = null; try { b = JSON.parse(x.responseText) } catch { /* ignore */ } ok({ status: x.status, body: b }) }; x.onerror = () => fail(new ApiError(0, "Mất kết nối khi tải ảnh")); x.send(form) });
     let r = await send(); if (r.status === 401 && await refresh()) r = await send();
-    if (r.status < 200 || r.status >= 300) throw new ApiError(r.status, (Array.isArray(r.body?.message) ? r.body.message.join("; ") : r.body?.message) ?? "Tải ảnh thất bại", r.body?.details, r.body?.code);
+    if (r.status < 200 || r.status >= 300) throw new ApiError(r.status, r.status === 0 ? NET_ERR : viMsg(r.status, bodyMsg(r.body) ?? "Tải ảnh thất bại"), r.body?.details, r.body?.code);
     return r.body as T },
   /** Tải file cần token (vd. file mẫu .xlsx) rồi bấm tải xuống. */
   async download(url: string, fileName: string): Promise<void> {
