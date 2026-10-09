@@ -20,6 +20,7 @@ const NAV: { href: string; label: string; icon: string; roles: Role[] }[] = [
   { href: "/messages", label: "Nhắn cô", icon: "💬", roles: ["parent"] },
   { href: "/audit", label: "Nhật ký thao tác", icon: "🗂️", roles: ["admin"] },
   { href: "/sensitive-changes", label: "Lịch sử thay đổi", icon: "🔐", roles: ["admin"] },
+  { href: "/staff", label: "Chấm công", icon: "🕘", roles: ["admin", "teacher"] },
   { href: "/holidays", label: "Lịch nghỉ", icon: "🏖️", roles: ["admin"] },
   { href: "/photos", label: "Ảnh lớp", icon: "📸", roles: ["admin", "teacher", "parent"] },
 ];
