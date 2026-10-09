@@ -11,10 +11,11 @@ export default function Children() {
       <input className="input" placeholder="Tìm theo tên..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} />
       <select className="input sm:w-48" value={classId} onChange={e => { setClassId(e.target.value); setPage(1) }}><option value="">Tất cả lớp</option>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
     </div>
+    {!data && <p className="mb-3 text-ink-500" data-testid="children-loading">Đang tải…</p>}{data && !data.items.length && <p className="mb-3 text-ink-500">Không có trẻ phù hợp</p>}
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{data?.items.map(c => <Link href={`/children/${c.id}`} key={c.id} className="card flex items-center gap-3 hover:ring-2 hover:ring-mint-300">
       <Photo url={(c as {photoUrl?: string}).photoUrl} id={c.id} withdrawn={c.status === "withdrawn"} size={48} />
       <div><div className="font-semibold">{c.fullName} {c.status === "withdrawn" && <WithdrawnBadge />}</div><div className="text-sm text-ink-500">{c.className ?? cname(c.classId)} · {fmtDate(c.dob)}</div>
       {c.allergies && <span className="text-xs text-red-600">⚠ Dị ứng: {c.allergies}</span>}</div></Link>)}</div>
     <div className="mt-4 flex items-center justify-center gap-3"><button className="btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>‹</button>
-      <span>Trang {page}/{pages} · {data?.total ?? 0} trẻ</span><button className="btn" disabled={page >= pages} onClick={() => setPage(page + 1)}>›</button></div></>;
+      <span>{data ? `Trang ${page}/${pages} · ${data.total} trẻ` : "Đang tải…"}</span><button className="btn" disabled={page >= pages} onClick={() => setPage(page + 1)}>›</button></div></>;
 }

@@ -13,14 +13,14 @@ const ROLE: Record<Role, { label: string; cls: string }> = {
 const hhmm = (s: string) => new Date(s).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" });
 
 export default function UsersPage() {
-  const [rows, setRows] = useState<U[]>([]); const [total, setTotal] = useState(0); const [page, setPage] = useState(1);
+  const [rows, setRows] = useState<U[]>([]); const [total, setTotal] = useState(0); const [loaded, setLoaded] = useState(false); const [page, setPage] = useState(1);
   const [role, setRole] = useState<"" | Role>(""); const [search, setSearch] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null); const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false); const [resetFor, setResetFor] = useState<U | null>(null);
   const limit = 20;
   const load = useCallback(async () => {
     const q = new URLSearchParams({ page: String(page), limit: String(limit), ...(role ? { role } : {}), ...(search.trim() ? { search: search.trim() } : {}) });
-    const r = await http.get<{ items: U[]; total: number }>("/users?" + q); setRows(r.items); setTotal(r.total);
+    const r = await http.get<{ items: U[]; total: number }>("/users?" + q); setRows(r.items); setTotal(r.total); setLoaded(true);
   }, [page, role, search]);
   useEffect(() => { const t = setTimeout(() => load().catch(e => setMsg({ ok: false, text: e.message })), 250); return () => clearTimeout(t) }, [load]);
   const act = async (fn: () => Promise<unknown>, ok: string) => {
@@ -57,9 +57,9 @@ export default function UsersPage() {
               ? <button disabled={busy} onClick={() => confirm(`Ngưng hoạt động tài khoản ${u.name}?`) && act(() => http.post(`/users/${u.id}/deactivate`), `Đã ngưng ${u.name}`)} className="text-rose-500">Ngưng</button>
               : <button disabled={busy} onClick={() => act(() => http.post(`/users/${u.id}/activate`), `Đã kích hoạt ${u.name}`)} className="text-mint-700">Kích hoạt</button>}
           </td></tr>)}
-          {!rows.length && <tr><td colSpan={5} className="py-10 text-center text-ink-500">Không có tài khoản phù hợp</td></tr>}
+          {!rows.length && <tr><td colSpan={5} className="py-10 text-center text-ink-500">{loaded ? "Không có tài khoản phù hợp" : "Đang tải…"}</td></tr>}
         </tbody></table>
-      <div className="mt-3 flex items-center justify-between text-xs text-ink-500"><span>{total} tài khoản</span>
+      <div className="mt-3 flex items-center justify-between text-xs text-ink-500"><span>{loaded ? `${total} tài khoản` : "Đang tải…"}</span>
         <div className="space-x-2"><button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="rounded-lg bg-ink-100 px-3 py-2 disabled:opacity-40">‹</button><span>{page}/{pages}</span><button disabled={page >= pages} onClick={() => setPage(p => p + 1)} className="rounded-lg bg-ink-100 px-3 py-2 disabled:opacity-40">›</button></div></div>
     </div>
     {creating && <CreateDialog onClose={() => setCreating(false)} onDone={n => { setCreating(false); setMsg({ ok: true, text: `Đã tạo tài khoản ${n}. Người dùng sẽ phải đổi mật khẩu khi đăng nhập lần đầu.` }); load() }} />}
