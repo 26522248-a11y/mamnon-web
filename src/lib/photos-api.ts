@@ -8,7 +8,8 @@
 import { API_ORIGIN, http, softGet } from "@/lib/api";
 
 export type PostPhoto = { id: string; width?: number; height?: number; childIds: string[]; /** parent: tags my child */ mine?: boolean;
-  hidden: boolean; hiddenReason: "CONSENT_WITHDRAWN" | string | null; hiddenChildIds?: string[]; /** not in contract yet */ hiddenAt?: string | null;
+  children?: { childId: string; name: string }[];
+  hidden: boolean; hiddenReason: "CONSENT_WITHDRAWN" | string | null; /** sticky (09b792e) */ hiddenForChildIds?: string[]; hiddenAt?: string | null;
   /** mock only */ emoji?: string; bg?: string };
 export type PhotoPost = { id: string; classId: string; caption: string | null; createdAt: string; author: { id: string; name: string } | null;
   likeCount: number; likedByMe: boolean; photos: PostPhoto[] };
@@ -26,6 +27,19 @@ export const setPhotoTags = (id: string, childIds: string[]) => http.put<PostPho
 export const unhidePhoto = (id: string) => http.post<PostPhoto>(`/photos/${id}/unhide`, {});
 export const likePost = (id: string, on: boolean) => on ? http.post(`/photo-posts/${id}/like`, {}) : http.del(`/photo-posts/${id}/like`);
 
+/** 422 PHOTO_CONSENT_MISSING on POST photo-posts, resolved per photo (index aligned with files/tags).
+ *  Feature-detect: per-photo shape (expected next round3 rev; guessed as details.photos=[{index, children}] + optional details.post = the
+ *  post created from the other photos) → server already posted the rest. Current contract (details.children only, nothing saved) → we
+ *  compute offending photos from our own tags and the caller re-posts the clean ones. */
+export type PhotoReject = { index: number; children: { childId: string; name: string }[] };
+export function consentRejects(e: unknown, tags: string[][]): { rejects: PhotoReject[]; serverPosted: boolean; post: PhotoPost | null } | null {
+  const x = e as { errorCode?: string; details?: { children?: { childId: string; name: string }[]; photos?: { index?: number; fileIndex?: number; children?: { childId: string; name: string }[] }[]; post?: PhotoPost | null } };
+  if (x?.errorCode !== "PHOTO_CONSENT_MISSING") return null; const d = x.details ?? {};
+  if (Array.isArray(d.photos)) return { serverPosted: true, post: d.post ?? null,
+    rejects: d.photos.map(p => ({ index: p.index ?? p.fileIndex ?? -1, children: p.children ?? [] })).filter(p => p.index >= 0) };
+  const bad = d.children ?? [];
+  return { serverPosted: false, post: null, rejects: tags.map((t, index) => ({ index, children: bad.filter(c => t.includes(c.childId)) })).filter(r => r.children.length) };
+}
 /** 422 PHOTO_CONSENT_MISSING → [{childId, name}] (else null). */
 export function consentMissing(e: unknown): { childId: string; name: string }[] | null {
   const x = e as { errorCode?: string; details?: { children?: { childId: string; name: string }[] } };
@@ -49,4 +63,4 @@ export const MOCK_POSTS: PhotoPost[] = [{ id: "mock-1", classId: "mock", caption
   { id: "p1", childIds: ["m-an", "m-ngoc"], mine: true, hidden: false, hiddenReason: null, emoji: "🎨", bg: "bg-sun-100" },
   { id: "p2", childIds: ["m-ngoc"], hidden: false, hiddenReason: null, emoji: "🧩", bg: "bg-sky-100" },
   { id: "p3", childIds: ["m-an"], mine: true, hidden: false, hiddenReason: null, emoji: "⚽", bg: "bg-mint-100" },
-  { id: "p4", childIds: ["m-chi", "m-an"], hidden: true, hiddenReason: "CONSENT_WITHDRAWN", hiddenChildIds: ["m-chi"], hiddenAt: new Date(Date.now() - 3600e3).toISOString(), emoji: "🍱", bg: "bg-peach-100" }] }];
+  { id: "p4", childIds: ["m-chi", "m-an"], hidden: true, hiddenReason: "CONSENT_WITHDRAWN", hiddenForChildIds: ["m-chi"], hiddenAt: new Date(Date.now() - 3600e3).toISOString(), emoji: "🍱", bg: "bg-peach-100" }] }];

@@ -9,7 +9,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, http } from "@/lib/api"; import { ClassRoom } from "@/lib/types"; import { fmtDateTime } from "@/lib/date";
-import { consentMissing, createPost, likePost, listPosts, MOCK_KIDS, MOCK_POSTS, photoErrorText, photoFileUrl, photosFeature, PhotoPost, PostPhoto, unhidePhoto } from "@/lib/photos-api";
+import { consentMissing, consentRejects, createPost, likePost, listPosts, MOCK_KIDS, MOCK_POSTS, photoErrorText, photoFileUrl, photosFeature, PhotoPost, PostPhoto, unhidePhoto } from "@/lib/photos-api";
 
 type Kid = { childId: string; fullName: string; photoConsent: boolean };
 const short = (n: string) => "bé " + (n.trim().split(/\s+/).pop() ?? n);
@@ -23,9 +23,9 @@ function Thumb({ p, live, className }: { p: PostPhoto; live: boolean; className:
 }
 
 function HiddenSheet({ p, kids, onClose, onUnhide }: { p: PostPhoto; kids: Kid[]; onClose: () => void; onUnhide: () => Promise<void> }) {
-  const name = (id: string) => short(kids.find(k => k.childId === id)?.fullName ?? "?");
-  const by = (p.hiddenChildIds?.length ? p.hiddenChildIds : p.childIds).map(name).join(", ");
-  const waiting = p.childIds.filter(id => !kids.find(k => k.childId === id)?.photoConsent).map(name);
+  const name = (id: string) => short(kids.find(k => k.childId === id)?.fullName ?? p.children?.find(c => c.childId === id)?.name ?? "?");
+  const by = (p.hiddenForChildIds?.length ? p.hiddenForChildIds : p.childIds).map(name).join(", ");
+  const waiting = Array.from(new Set([...(p.hiddenForChildIds ?? []), ...p.childIds])).filter(id => !kids.find(k => k.childId === id)?.photoConsent).map(name);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
   return <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-900/50 md:items-center" onClick={onClose}>
     <div role="dialog" aria-modal className="w-full max-w-md space-y-3 rounded-t-3xl bg-white p-5 md:rounded-3xl" onClick={e => e.stopPropagation()} data-testid="hidden-sheet">
@@ -39,47 +39,76 @@ function HiddenSheet({ p, kids, onClose, onUnhide }: { p: PostPhoto; kids: Kid[]
       <button type="button" className="min-h-12 w-full rounded-2xl bg-ink-100 font-semibold text-ink-700" onClick={onClose}>Đóng</button></div></div>;
 }
 
+type Item = { key: string; file: File; url: string; tags: string[]; bad?: { childId: string; name: string }[] };
 function Composer({ classId, kids, live, onPosted }: { classId: string; kids: Kid[]; live: boolean; onPosted: (p: PhotoPost) => void }) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [files, setFiles] = useState<File[]>([]); const [prev, setPrev] = useState<string[]>([]); const [caption, setCaption] = useState("");
-  const [tags, setTags] = useState<string[]>([]); const [missing, setMissing] = useState<{ childId: string; name: string }[] | null>(null);
-  const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
-  useEffect(() => { const u = files.map(f => URL.createObjectURL(f)); setPrev(u); return () => u.forEach(URL.revokeObjectURL) }, [files]);
-  const pick = (l: FileList | null) => { if (!l?.length) return; const arr = Array.from(l); setErr(""); setMissing(null);
+  const fileRef = useRef<HTMLInputElement>(null); const itemsRef = useRef<Item[]>([]);
+  const [items, setItems] = useState<Item[]>([]); const [caption, setCaption] = useState(""); const [batch, setBatch] = useState<string[]>([]);
+  const [sel, setSel] = useState<string | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState(""); const [ok, setOk] = useState("");
+  itemsRef.current = items; useEffect(() => () => itemsRef.current.forEach(i => URL.revokeObjectURL(i.url)), []);
+  const drop = (keys: Set<string>) => setItems(xs => { xs.filter(x => keys.has(x.key)).forEach(x => URL.revokeObjectURL(x.url)); return xs.filter(x => !keys.has(x.key)) });
+  const pick = (l: FileList | null) => { if (!l?.length) return; setErr(""); setOk(""); const arr = Array.from(l);
     const big = arr.find(f => f.size > MAX_MB * 1048576); if (big) { setErr(`Ảnh quá lớn (tối đa ${MAX_MB}MB mỗi ảnh): ${big.name}`); return }
-    if (arr.length > MAX) setErr(`Tối đa ${MAX} ảnh mỗi lần đăng, đã lấy ${MAX} ảnh đầu`); setFiles(arr.slice(0, MAX)) };
-  const missIds = new Set(missing?.map(m => m.childId)); const missNames = missing?.map(m => short(m.name)).join(", ");
-  const toggle = (k: Kid) => setTags(t => t.includes(k.childId) ? t.filter(x => x !== k.childId) : [...t, k.childId]);
-  const post = async () => { setBusy(true); setErr(""); setMissing(null);
-    try { if (!live) { // mock: never sent; ?demo=422 simulates the server rule for the designer/tester
-        if (new URLSearchParams(location.search).get("demo") === "422" && tags.length) throw { errorCode: "PHOTO_CONSENT_MISSING", details: { children: kids.filter(k => tags.includes(k.childId)).slice(0, 2).map(k => ({ childId: k.childId, name: k.fullName })) } };
+    const room = MAX - items.length; if (arr.length > room) setErr(`Tối đa ${MAX} ảnh mỗi lần đăng`);
+    setItems(xs => [...xs, ...arr.slice(0, Math.max(0, room)).map(file => ({ key: Math.random().toString(36).slice(2), file, url: URL.createObjectURL(file), tags: batch.filter(id => kids.find(k => k.childId === id)?.photoConsent) }))]) };
+  // default set → whole batch; per-photo edits stay until the default chip is toggled again
+  const toggleBatch = (id: string) => { const on = !batch.includes(id); setBatch(b => on ? [...b, id] : b.filter(x => x !== id));
+    setItems(xs => xs.map(x => ({ ...x, tags: on ? Array.from(new Set([...x.tags, id])) : x.tags.filter(t => t !== id) }))) };
+  const togglePhoto = (key: string, id: string) => setItems(xs => xs.map(x => x.key !== key ? x : { ...x, tags: x.tags.includes(id) ? x.tags.filter(t => t !== id) : [...x.tags, id],
+    bad: (b => b?.length ? b : undefined)(x.bad?.filter(b => !(b.childId === id && x.tags.includes(id)))) }));
+  const bad = items.filter(i => i.bad?.length); const badIds = new Set(bad.flatMap(i => i.tags.filter(t => i.bad!.some(b => b.childId === t))));
+  const badNames = Array.from(new Set(bad.flatMap(i => i.bad!.map(b => short(b.name))))).join(", ");
+  const send = async (list: Item[]) => { const f = new FormData(); list.forEach(x => f.append("files", x.file)); if (caption.trim()) f.append("caption", caption.trim());
+    f.append("tags", JSON.stringify(list.map(x => x.tags))); return createPost(classId, f) };
+  const finish = (posted: Item[], post: PhotoPost | null) => { if (post) onPosted(post); drop(new Set(posted.map(x => x.key)));
+    if (posted.length) setOk(`Đã đăng ${posted.length} ảnh`) };
+  const post = async () => { setBusy(true); setErr(""); setOk(""); setSel(null); const list = items.map(x => ({ ...x, bad: undefined })); setItems(list);
+    try { if (!live) { // mock: never sent; ?demo=422 simulates the server rule (2 tagged children lose consent)
+        const tagged = Array.from(new Set(list.flatMap(x => x.tags)));
+        if (new URLSearchParams(location.search).get("demo") === "422" && tagged.length) throw { errorCode: "PHOTO_CONSENT_MISSING", details: { children: kids.filter(k => tagged.includes(k.childId)).slice(-2).map(k => ({ childId: k.childId, name: k.fullName })) } };
         setErr("Sắp có: chưa đăng được ảnh thật, đây là màn hình mẫu."); return }
-      const f = new FormData(); files.forEach(x => f.append("files", x)); if (caption.trim()) f.append("caption", caption.trim()); f.append("tags", JSON.stringify(files.map(() => tags)));
-      onPosted(await createPost(classId, f)); setFiles([]); setCaption(""); setTags([]) }
-    catch (e) { const m = consentMissing(e); if (m) setMissing(m); else setErr(photoErrorText(e)) } finally { setBusy(false) } };
-  const allowed = kids.filter(k => k.photoConsent).length;
+      finish(list, await send(list)); setCaption(""); setBatch([]) }
+    catch (e) { const r = consentRejects(e, list.map(x => x.tags)); if (!r) { setErr(photoErrorText(e)); return }
+      if (!r.rejects.length) { setErr(`Chưa đăng được: ${(consentMissing(e) ?? []).map(c => short(c.name)).join(", ")} chưa được phụ huynh cho phép`); return }
+      const badIdx = new Map(r.rejects.map(x => [x.index, x.children])); const marked = list.map((x, i) => badIdx.has(i) ? { ...x, bad: badIdx.get(i) } : x); setItems(marked);
+      const clean = marked.filter(x => !x.bad);
+      if (r.serverPosted) finish(clean, r.post);
+      else if (clean.length && live) { try { finish(clean, await send(clean)) } catch (e2) { setErr(photoErrorText(e2)) } }
+      else if (clean.length) setOk(`Mẫu: ${clean.length} ảnh còn lại sẽ được đăng`) }
+    finally { setBusy(false) } };
+  const allowed = kids.filter(k => k.photoConsent).length; const cur = items.find(x => x.key === sel);
+  const chip = (k: Kid, on: boolean, onClick: () => void, tid: string, isBad = false) =>
+    <button key={k.childId} type="button" disabled={!k.photoConsent && !on} onClick={onClick} data-testid={tid} data-allowed={k.photoConsent} data-missing={isBad || undefined}
+      title={k.photoConsent ? "Phụ huynh đã cho phép đăng ảnh" : "Chưa được phụ huynh cho phép, không gắn tên được"}
+      className={`min-h-12 rounded-full border-2 px-3 text-sm font-semibold ${isBad ? "border-rose-500" : on ? "border-mint-500" : "border-transparent"} ${on ? "bg-mint-100 text-mint-700" : k.photoConsent ? "bg-ink-100 text-ink-700" : "!bg-white text-ink-300 line-through decoration-ink-300"}`}>
+      {k.photoConsent && <span className="mr-1 text-mint-700" aria-label="được phép">✓</span>}{short(k.fullName)}</button>;
   return <div className="card space-y-3" data-testid="composer">
     <b className="block">Đăng ảnh hoạt động</b>
     <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" multiple hidden onChange={e => { pick(e.target.files); e.target.value = "" }} data-testid="file-input" />
-    {files.length === 0 ? <button type="button" onClick={() => fileRef.current?.click()} className="flex min-h-24 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-300 text-ink-500" data-testid="btn-pick">
-      <span className="text-3xl">📷</span><span className="font-semibold">Chọn ảnh (tối đa {MAX} ảnh)</span></button>
-      : <div className="grid grid-cols-4 gap-1">{prev.map((u, i) => <div key={u} className="relative aspect-square"><img src={u} alt="" className="h-full w-full rounded-lg object-cover" />
-          <button type="button" aria-label="Bỏ ảnh" onClick={() => setFiles(f => f.filter((_, j) => j !== i))} className="absolute right-0 top-0 flex h-12 w-12 items-start justify-end p-1"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink-900/70 text-xs text-white">✕</span></button></div>)}
-        {files.length < MAX && <button type="button" onClick={() => fileRef.current?.click()} className="flex aspect-square items-center justify-center rounded-lg border-2 border-dashed border-ink-300 text-2xl text-ink-500" aria-label="Thêm ảnh">＋</button>}</div>}
-    <textarea className="input min-h-12" maxLength={300} rows={2} placeholder="Lời nhắn (không bắt buộc)" value={caption} onChange={e => setCaption(e.target.value)} data-testid="caption" />
-    <div><div className="mb-1 text-sm font-semibold">Gắn tên bé <span className="font-normal text-ink-500">· ✓ = phụ huynh đã cho phép ({allowed}/{kids.length})</span></div>
-      <div className="flex flex-wrap gap-2" data-testid="tag-chips">{kids.map(k => { const on = tags.includes(k.childId); const bad = missIds.has(k.childId);
-        return <button key={k.childId} type="button" disabled={!k.photoConsent && !on} onClick={() => toggle(k)} data-testid={`chip-${k.childId}`} data-allowed={k.photoConsent} data-missing={bad || undefined}
-          title={k.photoConsent ? "Phụ huynh đã cho phép đăng ảnh" : "Chưa được phụ huynh cho phép, không gắn tên được"}
-          className={`min-h-12 rounded-full border-2 px-3 text-sm font-semibold ${bad ? "border-rose-500" : on ? "border-mint-500" : "border-transparent"} ${on ? "bg-mint-100 text-mint-700" : k.photoConsent ? "bg-ink-100 text-ink-700" : "!bg-white text-ink-300 line-through decoration-ink-300"}`}>
-          {k.photoConsent && <span className="mr-1 text-mint-700" aria-label="được phép">✓</span>}{short(k.fullName)}</button> })}</div>
+    <div><div className="mb-1 text-sm font-semibold">Gắn tên cho cả loạt ảnh <span className="font-normal text-ink-500">· ✓ = phụ huynh đã cho phép ({allowed}/{kids.length})</span></div>
+      <div className="flex flex-wrap gap-2" data-testid="tag-chips">{kids.map(k => chip(k, batch.includes(k.childId), () => toggleBatch(k.childId), `chip-${k.childId}`, badIds.has(k.childId)))}</div>
       {kids.some(k => !k.photoConsent) && <p className="mt-1 text-xs text-ink-500">Bé chưa có ✓ thì phụ huynh chưa cho phép, chưa gắn tên được.</p>}</div>
-    {missing && <div className="space-y-2 rounded-2xl bg-rose-100 p-3 text-rose-600" role="alert" data-testid="consent-missing">
-      <p className="font-semibold">Chưa đăng được: {missNames} chưa được phụ huynh cho phép</p>
-      <button type="button" className="min-h-12 w-full rounded-2xl bg-white font-semibold text-rose-600" onClick={() => { setMissing(null); setFiles([]); fileRef.current?.click() }} data-testid="btn-pick-other">Chọn ảnh khác</button></div>}
+    {items.length === 0 ? <button type="button" onClick={() => fileRef.current?.click()} className="flex min-h-24 w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-ink-300 text-ink-500" data-testid="btn-pick">
+      <span className="text-3xl">📷</span><span className="font-semibold">Chọn ảnh (tối đa {MAX} ảnh)</span></button>
+      : <><p className="text-xs text-ink-500">Chạm vào ảnh để thêm/bớt tên riêng cho ảnh đó.</p>
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-4">{items.map(x => <div key={x.key} className="space-y-0.5" data-testid="compose-photo" data-bad={x.bad ? true : undefined}>
+          <div className={`relative aspect-square overflow-hidden rounded-xl border-2 ${x.bad ? "border-rose-500" : sel === x.key ? "border-mint-500" : "border-transparent"}`}>
+            <button type="button" className="block h-full w-full" onClick={() => setSel(s => s === x.key ? null : x.key)} aria-label="Gắn tên cho ảnh này" data-testid="compose-photo-tap"><img src={x.url} alt="" className="h-full w-full object-cover" /></button>
+            <button type="button" aria-label="Bỏ ảnh" onClick={() => { drop(new Set([x.key])); if (sel === x.key) setSel(null) }} className="absolute right-0 top-0 flex h-12 w-12 items-start justify-end p-1"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink-900/70 text-xs text-white">✕</span></button>
+            {x.tags.length > 0 && <span className="pointer-events-none absolute bottom-1 left-1 rounded-full bg-ink-900/70 px-2 py-0.5 text-xs text-white">🏷 {x.tags.length}</span>}</div>
+          {x.bad ? <div className="text-xs font-semibold text-rose-600" data-testid="compose-photo-bad">{x.bad.map(b => short(b.name)).join(", ")} chưa được phép</div>
+            : <div className="truncate text-xs text-ink-500">{x.tags.map(t => kids.find(k => k.childId === t)).filter(Boolean).map(k => short(k!.fullName)).join(", ") || "Chưa gắn tên"}</div>}</div>)}
+          {items.length < MAX && <button type="button" onClick={() => fileRef.current?.click()} className="flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-ink-300 text-2xl text-ink-500" aria-label="Thêm ảnh">＋</button>}</div></>}
+    {cur && <div className="space-y-2 rounded-2xl bg-ink-100/50 p-3" data-testid="photo-tagger"><div className="flex items-center gap-2"><img src={cur.url} alt="" className="h-12 w-12 rounded-lg object-cover" /><b className="flex-1 text-sm">Tên trong ảnh này</b>
+        <button type="button" className="min-h-12 rounded-xl px-3 text-sm font-semibold text-mint-700" onClick={() => setSel(null)}>Xong</button></div>
+      <div className="flex flex-wrap gap-2">{kids.map(k => chip(k, cur.tags.includes(k.childId), () => togglePhoto(cur.key, k.childId), `ptag-${k.childId}`, !!cur.bad?.some(b => b.childId === k.childId) && cur.tags.includes(k.childId)))}</div></div>}
+    <textarea className="input min-h-12" maxLength={300} rows={2} placeholder="Lời nhắn (không bắt buộc)" value={caption} onChange={e => setCaption(e.target.value)} data-testid="caption" />
+    {bad.length > 0 && <div className="space-y-2 rounded-2xl bg-rose-100 p-3 text-rose-600" role="alert" data-testid="consent-missing">
+      <p className="font-semibold">Chưa đăng được {bad.length} ảnh: {badNames} chưa được phụ huynh cho phép</p>
+      <button type="button" className="min-h-12 w-full rounded-2xl bg-white font-semibold text-rose-600" onClick={() => { drop(new Set(bad.map(x => x.key))); setSel(null); fileRef.current?.click() }} data-testid="btn-pick-other">Chọn ảnh khác</button></div>}
+    {ok && <p className="rounded-2xl bg-mint-50 p-3 text-sm font-semibold text-mint-700" data-testid="post-ok">✓ {ok}</p>}
     {err && <p className="text-sm text-rose-600" role="alert">{err}</p>}
-    <button type="button" className="min-h-12 w-full rounded-2xl bg-mint-500 font-semibold text-white disabled:bg-ink-100 disabled:text-ink-500" disabled={busy || files.length === 0} onClick={post} data-testid="btn-post">
-      {busy ? "Đang đăng…" : live ? `Đăng ${files.length || ""} ảnh` : "Đăng (Sắp có)"}</button></div>;
+    <button type="button" className="min-h-12 w-full rounded-2xl bg-mint-500 font-semibold text-white disabled:bg-ink-100 disabled:text-ink-500" disabled={busy || items.length === 0} onClick={post} data-testid="btn-post">
+      {busy ? "Đang đăng…" : live ? `Đăng ${items.length || ""} ảnh` : "Đăng (Sắp có)"}</button></div>;
 }
 
 export default function PhotosPage() {

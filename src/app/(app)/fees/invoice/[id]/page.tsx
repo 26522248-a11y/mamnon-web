@@ -17,6 +17,7 @@ export default function InvoiceDetail() {
     if (staff) http.get<Hist[]>(`/invoices/${id}/history`).then(setHist).catch(() => {});
   }, [id, staff]);
   useEffect(() => { load() }, [load]);
+  const invId = inv?.id; useEffect(() => { if (invId && location.hash === "#qr") setTimeout(() => document.getElementById("qr")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400) }, [invId]);
   if (err) return <p className="text-rose-500">{err}</p>; if (!inv) return <p>Đang tải…</p>;
   const lines = inv.lines ?? []; const open = inv.status !== "void" && inv.status !== "paid";
   async function pay(e: React.FormEvent) { e.preventDefault(); const n = Number(amount.replace(/\D/g, "")); if (!n) { setMsg("Nhập số tiền"); return }
@@ -43,7 +44,7 @@ export default function InvoiceDetail() {
           <span className={d.refundEligible ? "text-mint-700" : "text-ink-500"}>{d.refundEligible ? `Được hoàn${d.amount ? ` ${vnd(Math.abs(d.amount))}` : ""}` : "Báo sau giờ chốt, không hoàn"}</span></div>)}</div>}
       {inv.note && <p className="text-sm text-ink-500">Ghi chú: {inv.note}</p>}
     </div>
-    {me.role === "parent" && inv.status !== "void" && (inv.balance > 0 || inv.transferClaim) && <QrPay inv={inv} onChange={load} />}
+    {me.role === "parent" && inv.status !== "void" && (inv.balance > 0 || inv.transferClaim) && <div id="qr" className="scroll-mt-4"><QrPay inv={inv} onChange={load} /></div>}
     {(inv.payments ?? []).length > 0 && <div className="card"><h2 className="mb-2 font-semibold">Các lần thu</h2>{inv.payments!.map(p => <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-ink-100 py-2 text-sm">
       <span>{p.receiptNo} · {vnDateTime(p.paidAt)} · {METHOD[p.method]}{p.payerName ? ` · ${p.payerName}` : ""}</span><span className="flex items-center gap-3"><b>{vnd(p.amount)}</b>{!isWaived(inv) && p.amount > 0 && <Link href={`/fees/receipt/${p.id}`} className="text-mint-700 underline" data-testid="link-receipt">Biên lai</Link>}</span></div>)}</div>}
     {staff && open && <form onSubmit={pay} className="card space-y-3 bg-mint-50" data-testid="payment-form"><h2 className="font-semibold">Ghi thanh toán</h2>

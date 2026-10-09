@@ -89,7 +89,11 @@ function ChildFeeSummary({ child, invoices }: { child: Child; invoices: Invoice[
   return <div className="card space-y-3"><div className="flex items-center gap-3"><Photo url={child.photoUrl} id={child.id} size={48} withdrawn={child.status === "withdrawn"} /><div className="flex-1"><b>{child.fullName}</b><div className="text-sm text-ink-500">{child.className}</div></div>
     {bal && <div className="text-right"><div className={`text-xl font-bold ${bal.balance > 0 ? "text-rose-500" : "text-mint-700"}`} data-testid="parent-balance">{bal.balance > 0 ? vnd(bal.balance) : "Đã đóng đủ"}</div>
       {bal.creditBalance > 0 && <div className="text-xs text-sky-500">Số dư trả trước {vnd(bal.creditBalance)}</div>}{bal.overdueAmount > 0 && <div className="text-xs text-rose-500">Quá hạn {vnd(bal.overdueAmount)}</div>}</div>}</div>
-    {invoices.map(i => <Link key={i.id} href={`/fees/invoice/${i.id}`} className={`flex min-h-12 items-center justify-between gap-2 rounded-2xl p-3 ${i.overdue && i.status !== "paid" && i.status !== "void" ? "bg-rose-100/60" : "bg-ink-100/30"}`} data-testid="invoice-row">
-      <span>{monthLabel(i.period)} <span className="text-xs text-ink-500">· hạn {vnDate(i.dueDate)}</span></span><span className="flex items-center gap-2"><b>{vnd(i.totalAmount)}</b><StatusPill inv={i} /></span></Link>)}
+    {invoices.map(i => { const open = (i.status === "unpaid" || i.status === "partial") && i.balance > 0; const pend = open && i.paymentStatus === "pending_confirmation";
+      return <div key={i.id} className={`flex min-h-12 items-center gap-2 rounded-2xl p-1 pr-2 ${i.overdue && i.status !== "paid" && i.status !== "void" ? "bg-rose-100/60" : "bg-ink-100/30"}`} data-testid="invoice-row">
+        <Link href={`/fees/invoice/${i.id}`} className="flex min-h-12 min-w-0 flex-1 flex-wrap items-center justify-between gap-2 p-2">
+          <span>{monthLabel(i.period)} <span className="text-xs text-ink-500">· hạn {vnDate(i.dueDate)}</span></span><span className="flex items-center gap-2"><b>{vnd(i.totalAmount)}</b><StatusPill inv={pend ? { ...i, paymentStatus: null } : i} /></span></Link>
+        {pend ? <span className="shrink-0 rounded-full bg-sun-100 px-3 py-1 text-xs font-semibold text-ink-700" data-testid="row-pending">⏳ Chờ xác nhận</span>
+          : open && <Link href={`/fees/invoice/${i.id}#qr`} className="flex min-h-12 shrink-0 items-center rounded-full bg-mint-500 px-3 text-sm font-semibold text-white" data-testid="btn-pay">Thanh toán ›</Link>}</div> })}
     {invoices.length === 0 && <p className="text-sm text-ink-500">Chưa có hóa đơn</p>}</div>;
 }
