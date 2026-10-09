@@ -1,5 +1,5 @@
 /**
- * Wave 3 · class photo album — /workspace/mamnon-backend/docs/round3-api.md §2 (4e060e9, contract only, not implemented yet).
+ * Class photo album — mamnon-backend docs/round3-api.md §2 (implemented with A1: hiddenForChildIds on upload → photo saved hidden).
  * photosFeature() detects the routes in Swagger; until then the screen shows MOCK data and posting is disabled ("Sắp có").
  * Rules: tagging a child without consent → 422 PHOTO_CONSENT_MISSING {children:[{childId,name}]} (nothing saved). Consent withdrawn →
  * photos auto-hidden (hiddenReason CONSENT_WITHDRAWN, hiddenChildIds); re-consent does NOT unhide; teacher may unhide only when all tagged
@@ -55,7 +55,7 @@ export function consentMissing(e: unknown): { childId: string; name: string }[] 
   const x = e as { errorCode?: string; details?: { children?: { childId: string; name: string }[] } };
   return x?.errorCode === "PHOTO_CONSENT_MISSING" ? x.details?.children ?? [] : null;
 }
-export const PHOTO_ERR: Record<string, string> = { UNSUPPORTED_IMAGE: "Tệp không phải ảnh hợp lệ (chỉ nhận JPG, PNG, WebP, HEIC)", FILE_TOO_LARGE: "Ảnh quá lớn (tối đa 15MB mỗi ảnh)",
+export const PHOTO_ERR: Record<string, string> = { UNSUPPORTED_IMAGE: "Tệp không phải ảnh hợp lệ (chỉ nhận JPG, PNG, WebP, HEIC)", FILE_TOO_LARGE: "Ảnh quá lớn (tối đa 15MB mỗi ảnh)", PAYLOAD_TOO_LARGE: "Ảnh quá lớn (tối đa 15MB mỗi ảnh)",
   CHILD_NOT_IN_CLASS: "Có bé không thuộc lớp này" };
 export const photoErrorText = (e: unknown) => { const x = e as { errorCode?: string; message?: string; details?: { fileName?: string; file?: string } };
   const t = PHOTO_ERR[x?.errorCode ?? ""]; const f = x?.details?.fileName ?? x?.details?.file; return t ? `${t}${f ? `: ${f}` : ""}` : x?.message ?? "Có lỗi xảy ra" };

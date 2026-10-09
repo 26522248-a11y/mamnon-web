@@ -19,7 +19,7 @@ export function PhotoConsentToggle({ childId, canEdit }: { childId: string; canE
   return <div className="card space-y-1" data-testid="photo-consent">
     <button type="button" role="switch" aria-checked={on} disabled={!canEdit || busy} onClick={flip} data-testid="photo-consent-toggle"
       className="flex min-h-12 w-full items-center justify-between gap-3 text-left disabled:cursor-default">
-      <span className="font-medium">Cho phép đăng ảnh bé trong album lớp</span>
+      <span className="font-medium">Cho cô đăng hình con lên nhóm lớp</span>
       <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${on ? "bg-mint-500" : "bg-ink-300"} ${busy ? "opacity-50" : ""}`}>
         <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${on ? "left-[22px]" : "left-0.5"}`} /></span></button>
     {on ? (pc.updatedAt && <p className="text-xs text-mint-700" data-testid="photo-consent-by">Bật bởi {by ?? "—"} lúc {when(pc.updatedAt)}</p>)

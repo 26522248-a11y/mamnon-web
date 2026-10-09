@@ -141,7 +141,7 @@ export const absentOn = (a: Absence, date: string) => a.status !== "cancelled" &
 export type MedicineDue = { childId: string; fullName: string; classId: string; className: string | null; medicineId: string; medicineName: string; doseId: string; time: string; minutesLate: number };
 
 // ── photo consent (§9) ──
-export type PhotoConsent = { childId: string; consent: boolean; /** alias */ photoConsent: boolean; updatedBy: { id: string; name: string } | null; updatedAt: string | null;
+export type PhotoConsent = { childId: string; consent: boolean; /** A2: parent has answered at least once */ asked?: boolean; hiddenPhotos?: number; /** alias */ photoConsent: boolean; updatedBy: { id: string; name: string } | null; updatedAt: string | null;
   history: { before: boolean | null; after: boolean; by: { id: string; name: string; role: string } | null; at: string; note: string | null; source: "api" | "import" }[] };
 export const getPhotoConsent = (childId: string) => http.get<PhotoConsent>(`/children/${childId}/photo-consent`);
 /** parent of own child, admin (teacher → 403). Only a real change is recorded (audit child.photo_consent). */

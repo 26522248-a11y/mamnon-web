@@ -1,7 +1,7 @@
 "use client";
 /** U7/U8: parent account page – name, relation, masked phone; links; logout last (full-width rose, confirm). */
 import Link from "next/link"; import { useRouter } from "next/navigation"; import { useEffect, useState } from "react";
-import { api } from "@/lib/api"; import { useSchool } from "@/lib/school"; import { pickupPeople, pushState, subscribePush, PushState } from "@/lib/pickup-api";
+import { api } from "@/lib/api"; import { PhotoConsentChoice } from "@/components/PhotoConsentAsk"; import { useSchool } from "@/lib/school"; import { pickupPeople, pushState, subscribePush, PushState } from "@/lib/pickup-api";
 
 const maskPhone = (p?: string | null) => { const d = (p ?? "").replace(/\D/g, ""); return d.length >= 7 ? `${d.slice(0, 3)} ••• ${d.slice(-3)}` : p || "Chưa có số"; };
 
@@ -23,6 +23,7 @@ export default function Account() {
     <div className="card flex items-center gap-4" data-testid="account-me"><span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-peach-100 text-2xl">👤</span>
       <div className="min-w-0"><div className="text-lg font-bold">{me.name}</div>
         <div className="text-[15px] text-ink-500">{mine ? `${mine.relation}${mine.child ? ` của bé ${mine.child}` : ""} · ${maskPhone(mine.phone)}` : "Phụ huynh"}</div></div></div>
+    <PhotoConsentChoice />
     <div className="card divide-y divide-ink-100 !p-0" data-testid="account-links">
       <Link href="/pickups/delegates" className={row} data-testid="account-delegates"><span>🧑‍🤝‍🧑 Người đón hộ</span><span className="text-ink-300">›</span></Link>
       <Link href="/change-password?back=/account" className={row} data-testid="account-password"><span>🔑 Đổi mật khẩu</span><span className="text-ink-300">›</span></Link>

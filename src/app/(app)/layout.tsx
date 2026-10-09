@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link"; import { usePathname, useRouter } from "next/navigation"; import { useEffect, useState } from "react";
-import { api } from "@/lib/api"; import { APP_NAME, useSchool } from "@/lib/school"; import { Role, User } from "@/lib/types"; import ParentNav, { PARENT_TABS, parentTabFor } from "@/components/ParentNav";
+import { api } from "@/lib/api"; import { PhotoConsentAsk } from "@/components/PhotoConsentAsk"; import { APP_NAME, useSchool } from "@/lib/school"; import { Role, User } from "@/lib/types"; import ParentNav, { PARENT_TABS, parentTabFor } from "@/components/ParentNav";
 const NAV: { href: string; label: string; icon: string; roles: Role[] }[] = [
   { href: "/today", label: "Bé hôm nay", icon: "🌞", roles: ["parent"] },
   { href: "/dashboard", label: "Tổng quan", icon: "🏠", roles: ["admin", "accountant"] },
@@ -50,6 +50,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="mt-auto text-sm text-ink-500">{me.name}<button onClick={logout} className="mt-6 block min-h-11 w-full rounded-xl border border-rose-100 font-semibold text-rose-500">Đăng xuất</button></div>
     </aside>
     <main className="flex-1 p-4 pb-24 md:p-8">{children}</main>
+    {me.role === "parent" && <PhotoConsentAsk />}
     {me.role === "parent" ? <ParentNav path={path} /> : <>
     <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-white pb-[env(safe-area-inset-bottom)] md:hidden print:hidden" data-testid="mobile-nav">
       {tabs.map(n => <Link key={n.href} href={n.href} data-testid={`nav-tab-${n.href.slice(1)}`} className={`flex min-h-14 flex-1 flex-col items-center justify-center py-1 text-[11px] ${path.startsWith(n.href) && !more ? "font-semibold text-mint-700" : "text-ink-500"}`}><div className="text-xl">{n.icon}</div>{me.role === "teacher" && n.href === "/pickups" ? "Giao bé" : n.label}</Link>)}

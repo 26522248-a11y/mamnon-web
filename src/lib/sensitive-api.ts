@@ -30,7 +30,7 @@ export const exportSensitiveCsv = (q: SensitiveQuery) => {
 export const TYPE_UI: Record<SensitiveType, { icon: string; chip: string; short: string; long: string; pill: string; border: string; row: string }> = {
   guardian_unlink: { icon: "🔗", chip: "Gỡ liên kết", short: "Gỡ", long: "Gỡ liên kết phụ huynh", pill: "bg-rose-100 text-rose-500", border: "border-rose-500", row: "bg-rose-100/40" },
   phone_change: { icon: "📞", chip: "SĐT", short: "SĐT", long: "Đổi SĐT", pill: "bg-sky-100 text-sky-500", border: "border-sky-500", row: "" },
-  photo_consent: { icon: "📷", chip: "Đồng ý ảnh", short: "Ảnh", long: "Đồng ý ảnh", pill: "bg-peach-100 text-peach-500", border: "border-peach-500", row: "" },
+  photo_consent: { icon: "📷", chip: "Đồng ý đăng hình", short: "Ảnh", long: "Đồng ý đăng hình", pill: "bg-peach-100 text-peach-500", border: "border-peach-500", row: "" },
 };
 export const TYPES: SensitiveType[] = ["guardian_unlink", "phone_change", "photo_consent"];
 
