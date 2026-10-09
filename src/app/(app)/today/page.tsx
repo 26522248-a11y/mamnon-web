@@ -1,8 +1,8 @@
 "use client";
-import { useCallback, useEffect, useState } from "react"; import Link from "next/link"; import { api, http, todayStr } from "@/lib/api"; import { Child } from "@/lib/types";
+import { useCallback, useEffect, useRef, useState } from "react"; import Link from "next/link"; import { api, http, todayStr } from "@/lib/api"; import { Child } from "@/lib/types";
 import { Photo } from "@/components/Photo"; import { SubstituteCard } from "@/components/SubstituteCard"; import { InstallHint } from "@/components/InstallHint"; import { EAT, MOODS, sleepText } from "../notes/shared"; import { PickupLine } from "@/components/pickup";
 import { parentFeed, PickupRequest } from "@/lib/pickup-api"; import { PickupConfirmCard, useKeptConfirmed } from "@/components/PickupConfirmCard"; import { PushOptIn } from "@/components/pickup-safety"; import { getTodayClosure, TodayClosure, listAbsences, reportAbsence, cancelAbsence, Absence, ABSENCE_REASONS, ABSENCE_ERR, AbsenceReason } from "@/lib/messages-api";
-type Att = { status: string | null; note: string | null; pickup: { pickedUpByName: string; pickedUpAt: string } | null };
+type Att = { date?: string; status: string | null; note: string | null; pickup: { pickedUpByName: string; pickedUpAt: string } | null };
 type Menu = { days: { date: string; meals: Record<string, string | null>; allergyNotes?: Record<string, string | null> }[] };
 type Note = { date: string; breakfast?: string | null; eating: string | null; sleepMinutes: number | null; mood: string | null; toilet: string | null; note: string | null }; type Bal = { balance: number; outstanding: unknown[] };
 const ST: Record<string, [string, string]> = { present: ["bg-mint-500 text-white", "Bé đã đến lớp"], late: ["bg-sun-500", "Bé đến muộn"], absent: ["bg-rose-500 text-white", "Bé nghỉ hôm nay"] };
@@ -24,13 +24,17 @@ export default function Today() {
   useEffect(() => { if (!deep || !feed.length) return; const r = feed.find(x => x.id === deep.req); if (!r) return;
     const j = kids.findIndex(x => x.id === r.childId); if (j >= 0) setI(j);
     document.querySelector(`[data-req="${deep.req}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }) }, [deep, feed, kids]);
-  const k = kids[i];
+  const k = kids[i]; const attKey = useRef("");
   const load = useCallback(() => { if (!k) return;
-    http.get<Att[]>(`/children/${k.id}/attendance?from=${d}&to=${d}`).then(a => setAtt(a[0] ?? null)).catch(() => setAtt(null));
+    // P13: a failed poll (network blip, server waking up) keeps the last known status instead of flipping to "Cô chưa điểm danh";
+    // a reply for another child / another day (slow response after switching) is ignored.
+    const key = `${k.id}|${d}`; attKey.current = key;
+    http.get<Att[]>(`/children/${k.id}/attendance?from=${d}&to=${d}`).then(a => { if (attKey.current === key) setAtt(a.find(x => x.date === d) ?? a[0] ?? null) }).catch(() => {});
     http.get<Bal>(`/children/${k.id}/balance`).then(setBal).catch(() => {});
     http.get<{ unreadCount: number }>("/notifications/unread-count").then(r => setUnread(r.unreadCount)).catch(() => {});
     http.get<Note[]>(`/children/${k.id}/daily-notes?from=${d}&to=${d}`).then(n => setNote(n[0] ?? null)).catch(() => {});
     listAbsences(k.id, d, d).then(r => setAbs((Array.isArray(r) ? r : (r as { items: Absence[] }).items ?? []).find(a => a.days.some(x => x.date === d && !x.cancelled)) ?? null)).catch(() => {}) }, [k, d]);
+  useEffect(() => { setAtt(undefined) }, [k?.id, d]); // P13: never show the previous child's / yesterday's status while loading
   useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t) }, [load]);
   const pinned = feed.filter(show).sort((a, b) => Number(b.id === deep?.req) - Number(a.id === deep?.req));
   const deepGone = deep && feed.length > 0 && !pinned.some(r => r.id === deep.req) ? feed.find(r => r.id === deep.req) : null;
