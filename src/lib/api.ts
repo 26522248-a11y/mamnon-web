@@ -49,6 +49,16 @@ export const http = {
   del: <T,>(p: string, body?: unknown) => req<T>(p, { method: "DELETE", ...(body === undefined ? {} : { body: JSON.stringify(body) }) }),
   /** multipart/form-data: không đặt content-type để trình duyệt tự thêm boundary. */
   upload: <T,>(p: string, form: FormData) => req<T>(p, { method: "POST", body: form }),
+  /** Upload multipart có tiến độ (XHR) – onProgress 0..100. */
+  async uploadProgress<T>(p: string, form: FormData, onProgress: (pct: number) => void): Promise<T> {
+    if (!token) await refresh();
+    const send = () => new Promise<{ status: number; body: { message?: string | string[]; details?: never; code?: string } | null }>((ok, fail) => { const x = new XMLHttpRequest(); x.open("POST", BASE + p); x.withCredentials = true;
+      if (token) x.setRequestHeader("authorization", "Bearer " + token);
+      x.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.round(e.loaded * 100 / e.total)) };
+      x.onload = () => { let b = null; try { b = JSON.parse(x.responseText) } catch { /* ignore */ } ok({ status: x.status, body: b }) }; x.onerror = () => fail(new ApiError(0, "Mất kết nối khi tải ảnh")); x.send(form) });
+    let r = await send(); if (r.status === 401 && await refresh()) r = await send();
+    if (r.status < 200 || r.status >= 300) throw new ApiError(r.status, (Array.isArray(r.body?.message) ? r.body.message.join("; ") : r.body?.message) ?? "Tải ảnh thất bại", r.body?.details, r.body?.code);
+    return r.body as T },
   /** Tải file cần token (vd. file mẫu .xlsx) rồi bấm tải xuống. */
   async download(url: string, fileName: string): Promise<void> {
     const u = await this.blobUrl(url); if (!u) throw new ApiError(0, "Không tải được file, vui lòng thử lại");
