@@ -36,7 +36,7 @@ export default function TeacherHome() {
     <div className="card flex items-center justify-between gap-3 !p-4" data-testid="home-punch">
       <div><p className="text-xs text-ink-500">{!m ? "Đang tải…" : m.checkOut ? `Vào ${m.checkIn} · Ra ${m.checkOut}` : m.checkIn ? `Vào ca lúc ${m.checkIn}` : "Chưa vào ca"}</p><p className="text-3xl font-bold tabular-nums">{now}</p></div>
       {m?.checkOut ? <span className="rounded-xl bg-mint-50 px-3 py-2 text-sm font-semibold text-mint-700">✓ Đã ra ca</span>
-        : <button className={inShift ? "min-h-14 shrink-0 rounded-2xl border-2 border-peach-500 bg-white px-5 font-semibold text-peach-600 disabled:opacity-50" : "btn !min-h-14 shrink-0 px-5"} disabled={busy || !m || (inShift && lock)} onClick={() => punch(inShift)} data-testid="btn-checkin">{inShift ? (lock ? "✓ Đã vào ca" : "Ra ca") : "✓ Vào ca"}</button>}</div>
+        : <button className={inShift ? "min-h-14 shrink-0 rounded-2xl border-2 border-peach-500 bg-white px-5 font-semibold text-peach-600 disabled:opacity-50" : "btn !min-h-14 shrink-0 px-5"} disabled={busy || !m || (inShift && lock)} onClick={() => punch(inShift)} data-testid="btn-checkin">{!m ? (err ? "Thử lại sau" : "Đang tải…") : inShift ? (lock ? "✓ Đã vào ca" : "Ra ca") : "✓ Vào ca"}</button>}</div>
     {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
     <SubstituteToday />
     {lv && <Link href={`/staff/leaves/${lv.id}`} className={`block rounded-2xl border border-l-4 p-3 text-sm ${STATUS_UI[lv.status].cls}`} data-testid="home-leave">
