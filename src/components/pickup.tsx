@@ -8,7 +8,7 @@ export function ReqCard({ r, onChange, canDecide, requireNote }: { r: PickupReq;
   const [cls, label] = REQ_STYLE[r.status] ?? REQ_STYLE.expired;
   return <div className="card space-y-2">
     <div className="flex items-start justify-between gap-2"><div><div className="font-semibold">{r.pickerName} {r.relation && <span className="font-normal text-ink-500">({r.relation})</span>}</div>
-      <div className="text-sm text-ink-500">Đón bé {r.childName} · <a className="underline" href={`tel:${r.pickerPhone}`}>{r.pickerPhone}</a></div>{r.note && <div className="text-sm">“{r.note}”</div>}</div>
+      <div className="text-sm text-ink-500">Giao bé {r.childName} · <a className="underline" href={`tel:${r.pickerPhone}`}>{r.pickerPhone}</a></div>{r.note && <div className="text-sm">“{r.note}”</div>}</div>
       <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${cls}`}>{label}</span></div>
     {canDecide && r.status === "pending" && requireNote && <input className="input" placeholder="Ghi chú xác nhận (bắt buộc với Ban giám hiệu)" value={note} onChange={e => setNote(e.target.value)} />}
     {canDecide && r.status === "pending" && <div className="flex gap-2"><button className="btn flex-1" disabled={busy} onClick={() => act("confirm")}>Xác nhận cho đón</button>
