@@ -54,16 +54,16 @@ export default function Messages() {
 
 const weekend = (d: string) => [0, 6].includes(new Date(d + "T00:00:00Z").getUTCDay());
 function AbsenceForm({ child, cfg, holidays, onDone }: { child: Child; cfg: MsgConfig; holidays: Holiday[]; onDone: (m: string) => void }) {
-  const today = vnToday(); const [mode, setMode] = useState<"today" | "tomorrow" | "range">("today");
+  const today = vnToday(); const [mode, setMode] = useState<"today" | "tomorrow" | "range" | null>(null);
   const [from, setFrom] = useState(today); const [to, setTo] = useState(today); const [reason, setReason] = useState<AbsenceReason>("sick"); const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(""); const [now, setNow] = useState(vnNowHHMM());
   useEffect(() => { const t = setInterval(() => setNow(vnNowHHMM()), 15000); return () => clearInterval(t) }, []);
   const range = mode === "today" ? [today, today] : mode === "tomorrow" ? [addDays(today, 1), addDays(today, 1)] : [from, to];
-  const lateToday = range[0] === today && !refundPreview(today, cfg.absenceCutoff, now, today);
+  const lateToday = mode !== null && range[0] === today && !refundPreview(today, cfg.absenceCutoff, now, today);
   const days: string[] = []; for (let d = range[0]; d <= range[1] && days.length < 62; d = addDays(d, 1)) days.push(d);
   const holIn = holidays.filter(h => days.includes(h.date)); const schoolDays = days.filter(d => !weekend(d) && !holIn.some(h => h.date === d));
   const send = async () => { setErr("");
-    if (range[0] < today) return setErr("Không báo nghỉ cho ngày đã qua"); if (range[1] < range[0]) return setErr("Ngày kết thúc phải sau ngày bắt đầu");
+    if (!mode) return setErr("Chọn ngày bé nghỉ trước nhé"); if (range[0] < today) return setErr("Không báo nghỉ cho ngày đã qua"); if (range[1] < range[0]) return setErr("Ngày kết thúc phải sau ngày bắt đầu");
     if (reason === "other" && !note.trim()) return setErr("Ghi rõ lý do nghỉ");
     if (!schoolDays.length) return setErr(holIn.length ? `Trường nghỉ ${holIn.map(h => h.name).join(", ")}, không cần báo nghỉ` : "Các ngày đã chọn là cuối tuần, không cần báo nghỉ");
     setBusy(true);
@@ -82,7 +82,7 @@ function AbsenceForm({ child, cfg, holidays, onDone }: { child: Child; cfg: MsgC
     <b>Lý do</b>
     <div className="flex flex-wrap gap-2">{ABSENCE_REASONS.map(([v, l]) => <button key={v} onClick={() => setReason(v)} data-testid={`absence-reason-${v}`} className={`min-h-12 rounded-full px-4 text-sm ${reason === v ? "bg-mint-500 font-semibold text-white" : "bg-ink-100"}`}>{l}</button>)}</div>
     <AutoTextarea placeholder="Ví dụ: Bé sốt nhẹ từ tối qua…" value={note} maxLength={500} onChange={e => setNote(e.target.value)} data-testid="absence-note" />
-    {!lateToday && <p className="text-xs text-mint-700" data-testid="absence-rule">✓ Báo trước {cfg.absenceCutoff} sẽ được hoàn tiền ăn. Sau {cfg.absenceCutoff} vẫn là “Vắng có phép” nhưng không hoàn tiền ăn ngày đó.</p>}
+    {mode && !lateToday && <p className="text-xs text-mint-700" data-testid="absence-rule">✓ Báo trước {cfg.absenceCutoff} sẽ được hoàn tiền ăn. Sau {cfg.absenceCutoff} vẫn là “Vắng có phép” nhưng không hoàn tiền ăn ngày đó.</p>}
     {holIn.length > 0 && <p className="rounded-xl bg-peach-100 p-2 text-xs text-peach-600" data-testid="absence-holiday">🏖️ Trường nghỉ: {holIn.map(h => `${vnD(h.date)} ${h.name}`).join(", ")} (không cần báo).</p>}
     {lateToday && <p className="rounded-xl bg-sun-100 p-2 text-xs" data-testid="absence-late">Đã quá {cfg.absenceCutoff}: hôm nay không được hoàn tiền ăn{range[1] > range[0] ? ", các ngày sau vẫn được hoàn" : ""}.</p>}
     {err && <p className="text-sm text-rose-500">{err}</p>}

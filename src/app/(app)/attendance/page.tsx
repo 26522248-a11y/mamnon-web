@@ -26,12 +26,12 @@ export default function AttendancePage() {
   const [classes, setClasses] = useState<ClassRoom[]>([]); const [classId, setClassId] = useState("");
   const [holiday, setHoliday] = useState<{ id: string; name: string } | null>(null); const [closure, setClosure] = useState<TodayClosure | null>(null);
   useEffect(() => { if (holiday) getTodayClosure().then(c => setClosure(c && c.id === holiday.id ? c : null)); else setClosure(null) }, [holiday]); const [override, setOverride] = useState(false);
-  const [rows, setRows] = useState<Row[]>([]); const [msgs, setMsgs] = useState<ClassMessages | null>(null); const [msg, setMsg] = useState(""); const [saving, setSaving] = useState(false);
+  const [rows, setRows] = useState<Row[]>([]); const [msgs, setMsgs] = useState<ClassMessages | null>(null); const [msg, setMsg] = useState(""); const [saving, setSaving] = useState(false); const [loaded, setLoaded] = useState(false);
   useEffect(() => { api.classes().then(c => { const mine = me.role === "teacher" ? c.filter(x => me.classIds?.includes(x.id)) : c; setClasses(mine); const want = new URLSearchParams(window.location.search).get("class"); setClassId(mine.find(x => x.id === want)?.id ?? mine[0]?.id ?? "") }) }, [me.role, me.classIds]);
   const load = useCallback(async (keepMsg = false) => { if (!classId) return; if (!keepMsg) setMsg("");
     try { const [s, m, ft] = await Promise.all([http.get<{ items: Sheet[]; holiday?: { id: string; name: string; status?: string } | null }>(`/classes/${classId}/attendance?date=${today}`),
         msgFeatures().then(ft => ft.classMessages ? classMessages(classId, today) : emptyClassMessages(today)), msgFeatures()]);
-      setMsgs(m); setHoliday(s.holiday && s.holiday.status !== "pending" ? s.holiday : null); setOverride(ft.overrideAbsence); // only confirmed holidays count
+      setLoaded(true); setMsgs(m); setHoliday(s.holiday && s.holiday.status !== "pending" ? s.holiday : null); setOverride(ft.overrideAbsence); // only confirmed holidays count
       setRows(s.items.map(i => { const exc = i.excusedBy !== undefined ? !!i.excused : i.excused !== undefined ? i.excused || !!i.absenceReason : i.notifiedInAdvance; // server first (b205e5d)
         const orig: St = !i.status ? "unset" : i.status === "absent" && exc ? "excused" : i.status; const by = i.excusedBy ?? null;
         // round2: `excused` = parent report; a teacher-set "Vắng có phép" is absent + absenceReason. Legacy: notifiedInAdvance.
@@ -75,6 +75,7 @@ export default function AttendancePage() {
       {msgs.absences.filter(a => absentOn(a, today)).map(a => <div key={a.id} className="text-sm" data-testid="att-msg-absence">🛌 <b>{a.childName ?? rows.find(r => r.childId === a.childId)?.fullName}</b> nghỉ {reasonText(a.reason)}{a.note ? `: ${a.note}` : ""} → <span className="text-sky-500">đã tự đánh Vắng có phép</span></div>)}
       {msgs.latePickups.map(l => <div key={l.id} className="text-sm" data-testid="att-msg-late">⏰ <b>{l.childName ?? rows.find(r => r.childId === l.childId)?.fullName}</b> đón muộn {l.time}{l.pickerName ? ` (${l.pickerName})` : ""}{l.note ? ` · ${l.note}` : ""}</div>)}
       {msgs.medicines.map(m => <MedicineDoses key={m.id} m={{ ...m, childName: m.childName ?? rows.find(r => r.childId === m.childId)?.fullName }} onChange={() => load()} />)}</section>}
+    {!loaded ? <div className="space-y-2" data-testid="att-loading"><p className="text-center text-ink-500">Đang tải danh sách lớp…</p>{[0, 1, 2].map(i => <div key={i} className="card h-16 animate-pulse bg-ink-100/60" />)}</div> : <>
     <button className="min-h-14 w-full rounded-2xl bg-mint-100 font-semibold text-mint-700 disabled:opacity-50" disabled={!unset || !!holiday} onClick={allPresent} data-testid="att-all-present">
       ✓ Cả lớp có mặt {unset ? `(${unset} bé chưa điểm` : "(đã điểm hết"}{count("excused") ? `, trừ bé đã báo nghỉ)` : ")"}</button>
     <div className="flex flex-wrap gap-2 text-sm">{(["present", "excused", "absent", "late", "unset"] as St[]).map(s => <span key={s} className={`whitespace-nowrap rounded-full px-3 py-1 ${STYLE[s]}`}>{LABEL[s]}: {count(s)}</span>)}</div>
@@ -85,7 +86,7 @@ export default function AttendancePage() {
       {r.st === "excused" && (() => { const by = r.auto ? "parent" : r.st === r.orig ? r.by : "teacher";
         return <p className="text-xs text-sky-500" data-testid="att-excused-by">{by && <span className="mr-1 rounded-full bg-sky-100 px-2 py-0.5 font-semibold">{by === "parent" ? "PH báo" : "Cô ghi"}</span>}{r.note}</p> })()}
       {r.st === "absent" && <div className="flex flex-wrap gap-1" data-testid="att-reasons">{ABSENT_CHIPS.map(c => <button key={c} onClick={() => set(r.childId, { note: c })} className={`min-h-12 rounded-full px-3 text-xs ${r.note === c ? (c === "Không báo" ? "bg-rose-500 text-white" : "bg-ink-900 text-white") : "bg-ink-100"}`}>{c}</button>)}
-        <button onClick={() => set(r.childId, { st: "excused" })} className="min-h-12 rounded-full bg-sky-100 px-3 text-xs text-sky-500">Có phép</button></div>}</div>)}</div>
+        <button onClick={() => set(r.childId, { st: "excused" })} className="min-h-12 rounded-full bg-sky-100 px-3 text-xs text-sky-500">Có phép</button></div>}</div>)}</div></>}
     {msg && <p role="status" className={`rounded-xl p-3 text-center text-sm font-semibold ${msg.startsWith("✓") ? "bg-mint-50 text-mint-700" : "bg-rose-100 text-rose-500"}`} data-testid="att-msg">{msg}</p>}
     <button className="btn sticky bottom-20 min-h-14 w-full !bg-peach-500 disabled:!bg-ink-100 shadow-lg md:bottom-4" disabled={saving || !dirty.length || !!holiday} onClick={save} data-testid="att-save">{saving ? "Đang lưu…" : `Lưu điểm danh${dirty.length ? ` (${dirty.length})` : ""}`}</button>
     <Link href="/pickups" className="block text-center text-sm text-mint-700 underline">Giao bé ›</Link>

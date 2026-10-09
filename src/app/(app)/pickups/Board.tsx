@@ -10,7 +10,7 @@ export function Board({ isAdmin }: { isAdmin: boolean }) {
   useEffect(() => { load(); const t = setInterval(load, 10000); return () => clearInterval(t) }, [load]);
   const waiting = rs?.filter(r => r.school.status === "pending").length ?? 0;
   return <section className="card space-y-3" data-testid="pickup-board">
-    <div className="flex items-center justify-between gap-2"><h2 className="text-lg font-bold">Đón bé hôm nay</h2>
+    <div className="flex items-center justify-between gap-2"><h2 className="text-lg font-bold">Giao bé hôm nay</h2>
       {waiting > 0 && <span className="rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-500" data-testid="board-count">{waiting} yêu cầu chờ duyệt</span>}</div>
     {err && <p className="text-sm text-rose-500">{err}</p>}
     {rs?.length === 0 && <p className="rounded-2xl bg-mint-50 p-3 text-sm text-mint-700">Không có yêu cầu nào đang chờ.</p>}

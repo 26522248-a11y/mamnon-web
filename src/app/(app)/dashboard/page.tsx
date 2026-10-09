@@ -10,7 +10,7 @@ type Attention = { unmarked: ClassRow[]; allergic: Kid[]; pickups: Pick[]; picku
 const arr = <T,>(v: unknown): T[] | null => Array.isArray(v) ? v as T[] : null;
 
 export default function Dashboard() {
-  const me = api.me(); const admin = me?.role === "admin"; const [total, setTotal] = useState<number | null>(null); const [cls, setCls] = useState(0);
+  const me = api.me(); const admin = me?.role === "admin"; const [total, setTotal] = useState<number | null>(null); const [cls, setCls] = useState<number | null>(null);
   const [s, setS] = useState<Summary | null>(null); const [att, setAtt] = useState<Attention | null>(null);
   useEffect(() => { const d = todayStr();
     api.children({ limit: 1 }).then(p => setTotal(p.total)).catch(() => {}); api.classes().then(c => setCls(c.length)).catch(() => {});
@@ -39,14 +39,14 @@ export default function Dashboard() {
       setAtt({ unmarked, allergic, pickups, pickupCount, meds }) })().catch(() => {});
   }, [admin]);
   const here = s ? s.present + s.late : null;
-  const stats = [{ l: "Tổng số trẻ", v: total ?? "…", c: "bg-mint-100" }, { l: "Số lớp", v: cls, c: "bg-peach-100" },
-    ...(admin ? [{ l: "Có mặt hôm nay", v: s ? `${here}/${s.totalChildren}` : "…", c: "bg-sky-100" }] : [])];
+  const stats = [{ l: "Tổng số trẻ", v: total ?? "Đang tải…", c: "bg-mint-100" }, { l: "Số lớp", v: cls ?? "Đang tải…", c: "bg-peach-100" },
+    ...(admin ? [{ l: "Có mặt hôm nay", v: s ? `${here}/${s.totalChildren}` : "Đang tải…", c: "bg-sky-100" }] : [])];
   const nAttn = att ? att.unmarked.length + att.allergic.length + att.pickupCount + att.meds.length : 0;
   return <div className="space-y-4"><h1 className="text-2xl font-bold">Tổng quan</h1>
-    <div className="grid gap-4 sm:grid-cols-3">{stats.map(x => <div key={x.l} className={`card ${x.c}`}><div className="text-sm text-ink-700">{x.l}</div><div className="text-3xl font-bold">{x.v}</div></div>)}</div>
+    <div className="grid gap-4 sm:grid-cols-3">{stats.map(x => <div key={x.l} className={`card ${x.c}`}><div className="text-sm text-ink-700">{x.l}</div><div className={typeof x.v === "string" && x.v.startsWith("Đang") ? "py-2 text-base text-ink-500" : "text-3xl font-bold"}>{x.v}</div></div>)}</div>
     {admin && <div className="grid gap-4 lg:grid-cols-5">
       <section className="card lg:col-span-3" data-testid="dash-by-class"><h2 className="mb-3 text-lg font-semibold">Điểm danh theo lớp hôm nay</h2>
-        {!s?.byClass?.length && <p className="text-sm text-ink-500">Chưa có dữ liệu</p>}
+        {!s ? <p className="text-sm text-ink-500">Đang tải…</p> : !s.byClass?.length && <p className="text-sm text-ink-500">Chưa có dữ liệu</p>}
         <div className="space-y-3">{s?.byClass?.map(b => { const t = Math.max(b.totalChildren, 1), p = (b.present / t) * 100, l = (b.late / t) * 100, a = (b.absent / t) * 100;
           return <div key={b.classId} data-testid="dash-class-bar"><div className="mb-1 flex justify-between text-sm"><b>{b.className}</b><span className="text-ink-500">{b.present + b.late}/{b.totalChildren} có mặt{b.unmarked ? ` · ${b.unmarked} chưa điểm` : ""}</span></div>
             <div className="flex h-4 overflow-hidden rounded-full bg-ink-100" title={`Có mặt ${b.present}, muộn ${b.late}, vắng ${b.absent}, chưa điểm ${b.unmarked}`}>

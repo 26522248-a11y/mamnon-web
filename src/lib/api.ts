@@ -92,7 +92,8 @@ function saveUrl(u: string, fileName: string) { const a = document.createElement
 export function saveBase64(base64: string, fileName: string, mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
   const bin = atob(base64); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   const u = URL.createObjectURL(new Blob([bytes], { type: mime })); saveUrl(u, fileName); setTimeout(() => URL.revokeObjectURL(u), 10000) }
-export const todayStr = () => new Date().toLocaleDateString("sv-SE");
+/** School day (Asia/Ho_Chi_Minh), not the device timezone: P13 — a browser in UTC asked for yesterday until 07:00 VN. */
+export const todayStr = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" });
 
 /** Landing page per role (H4 '/' and after login). */
 export const roleHome = (m: { role: string; mustChangePassword?: boolean } | null) =>
