@@ -13,7 +13,7 @@ const errMsg = (e: unknown) => (e as Error)?.message || "Có lỗi, vui lòng th
 
 export default function TeacherHome() {
   const me = api.me();
-  const [m, setM] = useState<MyToday | null>(null); const [now, setNow] = useState(""); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const [m, setM] = useState<MyToday | null>(null); const [now, setNow] = useState(""); const [busy, setBusy] = useState(false); const [lock, setLock] = useState(false); const [err, setErr] = useState("");
   const [att, setAtt] = useState<{ done: number; total: number } | null>(null); const [meds, setMeds] = useState<number | null>(null); const [lv, setLv] = useState<Leave | null>(null);
   const today = vnToday(); const classId = me?.classIds?.[0];
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function TeacherHome() {
     return () => clearInterval(id);
   }, [classId, today]);
   if (me?.role !== "teacher") return <p className="text-ink-500">Trang này dành cho giáo viên.</p>;
-  const punch = async (out: boolean) => { setBusy(true); setErr(""); try { setM(await (out ? checkOut() : checkIn())) } catch (e) { setErr(errMsg(e)) } finally { setBusy(false) } };
+  const punch = async (out: boolean) => { if (out && !window.confirm("Ra ca bây giờ?")) return; setBusy(true); setErr(""); try { setM(await (out ? checkOut() : checkIn())); if (!out) { setLock(true); setTimeout(() => setLock(false), 60000) } } catch (e) { setErr(errMsg(e)) } finally { setBusy(false) } };
   const inShift = !!m?.checkIn && !m?.checkOut; const d = new Date(today + "T00:00:00");
   return <div className="mx-auto max-w-md space-y-3" data-testid="teacher-home">
     <div className="-mx-4 -mt-4 rounded-b-3xl bg-mint-500 p-4 text-white md:mx-0 md:mt-0 md:rounded-3xl">
@@ -36,7 +36,7 @@ export default function TeacherHome() {
     <div className="card flex items-center justify-between gap-3 !p-4" data-testid="home-punch">
       <div><p className="text-xs text-ink-500">{!m ? "Đang tải…" : m.checkOut ? `Vào ${m.checkIn} · Ra ${m.checkOut}` : m.checkIn ? `Vào ca lúc ${m.checkIn}` : "Chưa vào ca"}</p><p className="text-3xl font-bold tabular-nums">{now}</p></div>
       {m?.checkOut ? <span className="rounded-xl bg-mint-50 px-3 py-2 text-sm font-semibold text-mint-700">✓ Đã ra ca</span>
-        : <button className="btn !min-h-14 shrink-0 px-5" disabled={busy || !m} onClick={() => punch(inShift)} data-testid="btn-checkin">{inShift ? "Ra ca" : "✓ Vào ca"}</button>}</div>
+        : <button className={inShift ? "min-h-14 shrink-0 rounded-2xl border-2 border-peach-500 bg-white px-5 font-semibold text-peach-600 disabled:opacity-50" : "btn !min-h-14 shrink-0 px-5"} disabled={busy || !m || (inShift && lock)} onClick={() => punch(inShift)} data-testid="btn-checkin">{inShift ? (lock ? "✓ Đã vào ca" : "Ra ca") : "✓ Vào ca"}</button>}</div>
     {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
     <SubstituteToday />
     {lv && <Link href={`/staff/leaves/${lv.id}`} className={`block rounded-2xl border border-l-4 p-3 text-sm ${STATUS_UI[lv.status].cls}`} data-testid="home-leave">

@@ -7,7 +7,7 @@ const NAV: { href: string; label: string; icon: string; roles: Role[] }[] = [
   { href: "/home", label: "Trang đầu", icon: "🏠", roles: ["teacher"] },
   { href: "/children", label: "Hồ sơ trẻ", icon: "🧒", roles: ["admin", "teacher", "accountant", "parent"] },
   { href: "/attendance", label: "Điểm danh", icon: "✅", roles: ["admin", "teacher"] },
-  { href: "/pickups", label: "Đón bé", icon: "🚸", roles: ["admin", "teacher", "parent"] },
+  { href: "/pickups", label: "Giao bé", icon: "🚸", roles: ["admin", "teacher", "parent"] },
   { href: "/fees", label: "Học phí", icon: "💰", roles: ["admin", "accountant", "parent"] },
   { href: "/health", label: "Sức khỏe", icon: "📏", roles: ["admin", "teacher", "parent"] },
   { href: "/menu", label: "Thực đơn", icon: "🍚", roles: ["admin", "teacher", "parent"] },

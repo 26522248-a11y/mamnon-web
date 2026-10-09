@@ -12,7 +12,7 @@ export default function Pickups() {
   useEffect(() => { if (me.role !== "parent") myDuty().then(setDuty) }, [me.role]);
   if (me.role === "parent") return <ParentView />;
   const canApprove = me.role === "admin" || !!duty?.canApproveToday;
-  return <div className="mx-auto max-w-4xl space-y-4"><h1 className="text-2xl font-bold">{me.role === "teacher" ? "Giao bé" : "Đón bé"}</h1>
+  return <div className="mx-auto max-w-4xl space-y-4"><h1 className="text-2xl font-bold">{me.role === "parent" ? "Đón bé" : "Giao bé"}</h1>
     {me.role !== "admin" && duty?.onDutyToday && <p className="rounded-2xl bg-mint-100 p-3 text-sm text-mint-700" data-testid="on-duty">🛡️ Hôm nay bạn trực đón: được duyệt phần nhà trường. Yêu cầu bạn đã duyệt phải do người khác giao bé.</p>}
     {me.role === "accountant" && !duty?.onDutyToday && <p className="text-ink-500">Hôm nay bạn không trực đón.</p>}
     {canApprove && <Board isAdmin={me.role === "admin"} />}
