@@ -46,7 +46,7 @@ export default function Dashboard() {
     <div className="grid gap-4 sm:grid-cols-3">{stats.map(x => <div key={x.l} className={`card ${x.c}`}><div className="text-sm text-ink-700">{x.l}</div><div className={typeof x.v === "string" && x.v.startsWith("Đang") ? "py-2 text-base text-ink-500" : "text-3xl font-bold"}>{x.v}</div></div>)}</div>
     {admin && <div className="grid gap-4 lg:grid-cols-5">
       <section className="card lg:col-span-3" data-testid="dash-by-class"><h2 className="mb-3 text-lg font-semibold">Điểm danh theo lớp hôm nay</h2>
-        {!s?.byClass?.length && <p className="text-sm text-ink-500">Chưa có dữ liệu</p>}
+        {!s ? <p className="text-sm text-ink-500">Đang tải…</p> : !s.byClass?.length && <p className="text-sm text-ink-500">Chưa có dữ liệu</p>}
         <div className="space-y-3">{s?.byClass?.map(b => { const t = Math.max(b.totalChildren, 1), p = (b.present / t) * 100, l = (b.late / t) * 100, a = (b.absent / t) * 100;
           return <div key={b.classId} data-testid="dash-class-bar"><div className="mb-1 flex justify-between text-sm"><b>{b.className}</b><span className="text-ink-500">{b.present + b.late}/{b.totalChildren} có mặt{b.unmarked ? ` · ${b.unmarked} chưa điểm` : ""}</span></div>
             <div className="flex h-4 overflow-hidden rounded-full bg-ink-100" title={`Có mặt ${b.present}, muộn ${b.late}, vắng ${b.absent}, chưa điểm ${b.unmarked}`}>
