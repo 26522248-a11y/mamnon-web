@@ -1,4 +1,5 @@
 // Client API thật: NestJS /api/v1. Access token giữ trong bộ nhớ, refresh token nằm trong cookie httpOnly.
+import { shrinkForm } from "./shrink-image";
 import { ApiError, Paged, Child, Attendance, AttStatus, User, ClassRoom } from "./types";
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001") + "/api/v1";
 let token: string | null = null; let refreshing: Promise<boolean> | null = null;
@@ -14,6 +15,7 @@ async function refresh(): Promise<boolean> {
 export const NET_ERR = "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại nhé.";
 export function viMsg(status: number, msg?: string | null): string {
   if (status === 0) return NET_ERR;
+  if (status === 503) return "Máy chủ đang bận, đợi vài giây rồi gửi lại nhé."; // B31: hàng đợi xử lý ảnh đầy
   if (status >= 500) return "Máy chủ đang bận hoặc gặp sự cố. Vui lòng thử lại sau ít phút.";
   if (msg && !/^[\x00-\x7F]*$/.test(msg)) return msg; // đã là tiếng Việt
   if (status === 403) return "Bạn không có quyền làm việc này.";
@@ -65,9 +67,10 @@ export const http = {
   patch: <T,>(p: string, body?: unknown) => req<T>(p, { method: "PATCH", body: JSON.stringify(body ?? {}) }),
   del: <T,>(p: string, body?: unknown) => req<T>(p, { method: "DELETE", ...(body === undefined ? {} : { body: JSON.stringify(body) }) }),
   /** multipart/form-data: không đặt content-type để trình duyệt tự thêm boundary. */
-  upload: <T,>(p: string, form: FormData) => req<T>(p, { method: "POST", body: form }),
+  upload: async <T,>(p: string, form: FormData) => req<T>(p, { method: "POST", body: await shrinkForm(form) }), // B32
   /** Upload multipart có tiến độ (XHR) – onProgress 0..100. */
   async uploadProgress<T>(p: string, form: FormData, onProgress: (pct: number) => void): Promise<T> {
+    form = await shrinkForm(form); // B32: thu nhỏ ảnh trước khi gửi
     if (!token) await refresh();
     const send = () => new Promise<{ status: number; body: { message?: string | string[]; details?: never; code?: string } | null }>((ok, fail) => { const x = new XMLHttpRequest(); x.open("POST", BASE + p); x.withCredentials = true;
       if (token) x.setRequestHeader("authorization", "Bearer " + token);
