@@ -61,7 +61,7 @@ export const http = {
 };
 /** GET không chuyển hướng về /login khi lỗi: trả null nếu không thành công (dùng cho trang công khai, tính năng tùy chọn). */
 export async function softGet<T>(path: string): Promise<T | null> {
-  try { const r = await fetch(path.startsWith("http") ? path : BASE + path, { credentials: "include", headers: token ? { authorization: "Bearer " + token } : {} });
+  try { const r = await fetch(path.startsWith("http") || path.startsWith("/api/") ? path : BASE + path, { credentials: "include", headers: token ? { authorization: "Bearer " + token } : {} });
     return r.ok ? (await r.json()) as T : null } catch { return null } }
 export const API_ORIGIN = BASE.replace(/\/api\/v1$/, "");
 function saveUrl(u: string, fileName: string) { const a = document.createElement("a"); a.href = u; a.download = fileName; document.body.appendChild(a); a.click(); a.remove() }

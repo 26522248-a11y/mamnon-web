@@ -34,3 +34,10 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Triển khai trên Vercel
+- Import repo vào Vercel (Next.js, mặc định). Biến môi trường: **`API_INTERNAL_URL=https://<api>.onrender.com`** (không có `/` cuối), **không** đặt `NEXT_PUBLIC_API_URL`.
+  → chế độ proxy: trình duyệt gọi `/api/v1/*` cùng tên miền, `next.config.mjs` chuyển tiếp sang API (cookie đăng nhập là cookie cùng trang, chạy được trên iPhone Safari). Không cần `vercel.json`.
+- Gọi thẳng API (không proxy): `NEXT_PUBLIC_API_URL=https://<api>.onrender.com` + phía API `COOKIE_SAMESITE=none`, `CORS_ORIGIN=<tên miền web>`.
+- Dev: `.env.local` giữ `NEXT_PUBLIC_API_URL=http://localhost:3001`.
+- Hướng dẫn đầy đủ (Neon, Render, Vercel): `mamnon-backend/DEPLOY.md`.
