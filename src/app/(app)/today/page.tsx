@@ -63,7 +63,8 @@ export default function Today() {
     <div className="card flex items-center gap-4 bg-gradient-to-br from-mint-100 to-peach-50"><Photo url={k.photoUrl} id={k.id} withdrawn={k.status === "withdrawn"} size={72} />
       <div><div className="text-sm text-ink-500">Bé hôm nay · {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric", timeZone: "Asia/Ho_Chi_Minh" })}</div><h1 className="text-xl font-bold">{k.fullName}</h1><div className="text-sm">{k.className}</div></div></div>
     <SubstituteCard childId={k.id} classId={k.classId} childName={`bé ${k.fullName.split(" ").pop()}`} today={d} />
-    {gone ? <PickupLine pickup={att?.pickup} reqs={feed.filter(r => r.childId === k.id)} card />
+    {gone ? <Link href={`/today/log/${k.id}?tab=attendance`} className="relative block active:scale-[.98]" data-testid="tile-picked-up" aria-label="Xem lịch sử điểm danh">
+        <PickupLine pickup={att?.pickup} reqs={feed.filter(r => r.childId === k.id)} card /><span className="absolute right-4 top-1/2 -translate-y-1/2 text-mint-700" aria-hidden>›</span></Link>
     : <Link href={`/today/log/${k.id}?tab=attendance`} className={`block rounded-2xl p-4 text-center text-lg font-semibold ${st[0]}`} data-testid="tile-attendance">{st[1]} <span className="text-sm font-normal opacity-80">›</span></Link>}
     {abs || att?.status === "absent" ? <div className="card flex items-center justify-between gap-2 border-l-4 border-sky-500" data-testid="absence-reported"><span>🏠 <b>Đã báo nghỉ hôm nay</b>{abs && <span className="block text-sm text-ink-500">{ABSENCE_REASONS.find(r => r[0] === abs.reason)?.[1]}{abs.note ? ` · ${abs.note}` : ""}</span>}</span>
         {abs?.cancellable?.includes(d) && <button className="min-h-12 shrink-0 px-2 text-sm text-rose-500" onClick={undoAbsence} data-testid="absence-undo">Huỷ</button>}</div>
