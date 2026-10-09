@@ -5,7 +5,7 @@ import { api, http, todayStr } from "@/lib/api"; import { Child } from "@/lib/ty
 import { actionLabel, AuditEvent, auditActions, fieldLabel, fieldValue, hiddenField, listAudit } from "@/lib/audit-api"; import { fmtDateTime } from "@/lib/date";
 
 type U = { id: string; name: string; role: string };
-const ROLE: Record<string, string> = { admin: "Ban giám hiệu", teacher: "GV", accountant: "KT", parent: "PH" };
+const ROLE: Record<string, string> = { admin: "Ban giám hiệu", teacher: "Giáo viên", accountant: "Kế toán", parent: "Phụ huynh" };
 const LIMIT = 30;
 const addDays = (d: string, n: number) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return x.toLocaleDateString("sv-SE") };
 
@@ -40,7 +40,7 @@ export default function AuditPage() {
           {e.childId && <Link href={`/children/${e.childId}`} className="text-mint-700 underline">🧒 {e.childName ?? "Hồ sơ bé"}</Link>}
           <span className="ml-auto text-ink-500">{fmtDateTime(e.at)}</span></div>
         {keys.length > 0 && <table className="w-full text-xs" data-testid="audit-diff"><thead className="text-left text-ink-500"><tr><th className="w-1/4">Mục</th><th>Trước</th><th>Sau</th></tr></thead>
-          <tbody>{keys.map(k => { const b = fieldValue(e.before?.[k]), a = fieldValue(e.after?.[k]); return <tr key={k} className="border-t border-ink-100 align-top"><td className="py-1 font-semibold">{fieldLabel(k)}</td>
+          <tbody>{keys.map(k => { const b = fieldValue(e.before?.[k], k), a = fieldValue(e.after?.[k], k); return <tr key={k} className="border-t border-ink-100 align-top"><td className="py-1 font-semibold">{fieldLabel(k)}</td>
             <td className={`py-1 break-all ${b !== a ? "text-rose-500 line-through" : ""}`}>{b}</td><td className={`py-1 break-all ${b !== a ? "font-semibold text-mint-700" : ""}`}>{a}</td></tr> })}</tbody></table>}
         {e.reason && <p className="rounded-xl bg-sun-100 p-2" data-testid="audit-reason">Lý do: {e.reason}</p>}</div> })}</div>
     {total > LIMIT && <div className="flex items-center justify-center gap-2"><button className="btn min-h-12 !bg-white !text-ink-700" disabled={page <= 1} onClick={() => setPage(page - 1)}>‹</button>
