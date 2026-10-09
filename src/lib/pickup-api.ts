@@ -87,8 +87,12 @@ export const pickupOptions = (attendanceId: string) => http.get<PickupOptions>(`
 /** Full CCCD; every call is audit-logged by the backend, so call it only when the handover screen opens a person. */
 export const pickupIdentity = (attendanceId: string, kind: IdentityKind, id: string) =>
   http.get<Identity>(`/attendance/${attendanceId}/pickup-identity?kind=${kind}&id=${id}`);
-export const handOver = (attendanceId: string, b: { guardianId?: string; authorizedPickerId?: string; pickupRequestId?: string; note?: string }) =>
-  http.post<{ pickedUpByName: string; pickedUpAt: string; warnings: MultiWarning[] }>(`/attendance/${attendanceId}/pickup`, b);
+/** U10/U5: optional hand-over photo → multipart; parents get "🚸 Bé X đã được đón" with it. */
+export const handOver = (attendanceId: string, b: { guardianId?: string; authorizedPickerId?: string; pickupRequestId?: string; note?: string }, photo?: File | null) => {
+  type R = { pickedUpByName: string; pickedUpAt: string; warnings: MultiWarning[]; photoUrl?: string | null; handedOverByName?: string };
+  if (!photo) return http.post<R>(`/attendance/${attendanceId}/pickup`, b);
+  const f = new FormData(); Object.entries(b).forEach(([k, v]) => { if (v) f.append(k, v) }); f.append("photo", photo);
+  return http.upload<R>(`/attendance/${attendanceId}/pickup`, f) };
 
 // ── parent's own contact phones (① / ② the teacher calls after 15 minutes) ──
 /** Backend ContactPhonesController (pickup/authorized-pickers.controller.ts). phone1/2 null = never set → callOrder falls back to guardian phones. */
@@ -105,9 +109,9 @@ export const removeDuty = (id: string) => http.del(`/pickup-duties/${id}`);
 
 // ── helpers ──
 /** "079123456789" → "0791 •••• 6789" (handover screen: first 4 + last 4). */
-export const idFirstLast = (v?: string | null) => (v && v.length >= 8 ? `${v.slice(0, 4)} •••• ${v.slice(-4)}` : v ?? "—");
+export const idFirstLast = (v?: string | null) => (v && v.length >= 8 ? `${v.slice(0, 4)} •••• ${v.slice(-4)}` : v || "chưa có");
 /** "********6789" → "•••• 6789" (lists: last 4 only). */
-export const idLast4 = (masked?: string | null) => (masked ? `•••• ${masked.slice(-4)}` : "—");
+export const idLast4 = (masked?: string | null) => (masked ? `•••• ${masked.slice(-4)}` : "chưa có");
 export const maskPhone = (p?: string | null) => (p && p.length > 6 ? `${p.slice(0, 4)} xxx ${p.slice(-3)}` : p ?? "");
 export const BLOCKER_TEXT: Record<string, string> = {
   EXPIRED: "Yêu cầu đã hết hạn", REJECTED: "Đã bị từ chối, KHÔNG giao bé", PARENT_PENDING: "Chờ phụ huynh xác nhận", SCHOOL_PENDING: "Chờ nhà trường duyệt",

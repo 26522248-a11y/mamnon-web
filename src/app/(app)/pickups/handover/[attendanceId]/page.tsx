@@ -55,7 +55,7 @@ export default function Handover() {
 
 function Detail({ o, sel, reload, onDone }: { o: PickupOptions; sel: Sel; reload: () => void; onDone: (d: { text: string; warnings: MultiWarning[] }) => void }) {
   const [idt, setIdt] = useState<Identity | null>(null); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false); const [checked, setChecked] = useState(false);
-  const [reqOverride, setReq] = useState<PickupRequest | null>(null);
+  const [reqOverride, setReq] = useState<PickupRequest | null>(null); const [shot, setShot] = useState<File | null>(null); const [shotUrl, setShotUrl] = useState<string | null>(null);
   useEffect(() => { pickupIdentity(o.attendanceId, sel.kind, sel.id).then(setIdt).catch(e => setErr(e.message)) }, [o.attendanceId, sel.kind, sel.id]); // audit-logged by backend
   const g = sel.kind === "guardian" ? o.guardians.find(x => x.id === sel.id) : undefined;
   const p = sel.kind === "authorized_picker" ? o.authorizedPickers.find(x => x.id === sel.id) : undefined;
@@ -64,13 +64,20 @@ function Detail({ o, sel, reload, onDone }: { o: PickupOptions; sel: Sel; reload
   const item = g ?? p ?? r; if (!item) return <p className="text-ink-500">Không tìm thấy người đón.</p>;
   const name = g?.fullName ?? p?.fullName ?? r!.pickerName; const relation = g?.relation ?? p?.relation ?? r?.relation;
   const can = item.canHandOver; const blockers = item.blockers ?? [];
+  const phone = g?.phone ?? p?.phone1 ?? r?.pickerPhone ?? null; const firstTime = !!p && !idt?.photoUrl && !p.photoUrl;
+  const takePhoto = async (x: File | undefined) => { if (!x) return; if (!isAllowedPhoto(x)) return setErr("Chỉ nhận ảnh JPG, PNG hoặc HEIC");
+    const ph = await shrinkImage(x); if (ph.size > PHOTO_MAX_BYTES && !isHeic(ph)) return setErr("Ảnh tối đa 3MB"); setErr(""); setShot(ph); setShotUrl(isHeic(ph) ? null : URL.createObjectURL(ph)) };
   const give = async () => { setBusy(true); setErr("");
-    try { const res = await handOver(o.attendanceId, g ? { guardianId: g.id } : p ? { authorizedPickerId: p.id } : { pickupRequestId: r!.id });
+    try { const res = await handOver(o.attendanceId, g ? { guardianId: g.id } : p ? { authorizedPickerId: p.id } : { pickupRequestId: r!.id }, shot);
       onDone({ text: `Đã giao bé ${o.child.fullName} cho ${res.pickedUpByName ?? name} lúc ${hhmm(res.pickedUpAt)}. Phụ huynh đã được báo.`, warnings: res.warnings ?? [] }) }
     catch (e) { setErr(pickupErrorText(e)); reload() } finally { setBusy(false) } };
   return <div className="space-y-3" data-testid="handover-detail" data-kind={sel.kind}>
-    <PersonPhoto url={idt?.photoUrl ?? (p?.photoUrl ?? r?.photoUrl)} alt={name} className="h-72 w-full" testid="handover-photo" />
-    <div className="text-center"><div className="text-2xl font-bold">{name}</div>
+    {shotUrl ? <PreviewImg src={shotUrl} className="h-72 w-full rounded-2xl object-cover" /> : shot ? <div className="flex h-72 items-center justify-center rounded-2xl bg-ink-100">📷 Đã chụp ảnh (HEIC)</div>
+      : <PersonPhoto url={idt?.photoUrl ?? (p?.photoUrl ?? r?.photoUrl)} alt={name} className="h-72 w-full" testid="handover-photo" />}
+    {firstTime && !shot && <p className="rounded-xl bg-sun-100 p-2 text-center text-sm" data-testid="handover-first-time">Lần đón đầu, chụp ảnh giúp</p>}
+    <div className="flex items-center gap-3"><div className="min-w-0 flex-1 text-center"><div className="text-2xl font-bold">{name}</div>{phone && <div className="text-ink-500">{phone}</div>}</div>
+      {phone && <a href={`tel:${phone.replace(/\s/g, "")}`} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-mint-100 text-2xl" aria-label={`Gọi ${name}`} data-testid="handover-call">📞</a>}</div>
+    <div className="text-center">
       <div>{relation ? `${relation} của bé · ` : ""}Căn cước <b data-testid="handover-cccd">{idt ? idFirstLast(idt.idNumber) : "…"}</b></div>
       <div className="text-xs text-ink-500">Đối chiếu ảnh và căn cước bản cứng trước khi giao</div></div>
     {r && <><StepTick label="Phụ huynh" s={r.parent} testid="tick-parent" /><StepTick label="Nhà trường" s={r.school} testid="tick-school" />
@@ -80,8 +87,10 @@ function Detail({ o, sel, reload, onDone }: { o: PickupOptions; sel: Sel; reload
     {!can && blockers.length > 0 && <ul className="space-y-1 text-sm text-rose-500" data-testid="handover-blockers">{blockers.map(b => <li key={b}>• {BLOCKER_TEXT[b] ?? b}</li>)}</ul>}
     {!r && can && <label className="flex min-h-12 items-center gap-3 rounded-2xl bg-mint-50 px-4"><input type="checkbox" className="h-6 w-6" checked={checked} onChange={e => setChecked(e.target.checked)} data-testid="handover-checked" />Đã đối chiếu ảnh và căn cước</label>}
     {err && <p className="text-sm text-rose-500" data-testid="handover-error">{err}</p>}
-    <button className="min-h-14 w-full rounded-2xl bg-mint-500 text-lg font-semibold text-white disabled:bg-ink-100 disabled:text-ink-500" data-testid="handover-give"
-      disabled={busy || !can || (!r && !checked)} onClick={give}>{can ? `Giao bé cho ${name}` : r ? "🔒 Giao bé (cần đủ 2 xác nhận)" : "🔒 Không thể giao bé"}</button></div>;
+    <div className="grid grid-cols-2 gap-2"><label className="flex min-h-14 cursor-pointer items-center justify-center rounded-2xl bg-sky-100 text-lg font-semibold text-sky-500" data-testid="handover-shoot">📷 {shot ? "Chụp lại" : "Chụp ảnh"}
+        <input type="file" accept={PHOTO_ACCEPT} capture="environment" className="sr-only" data-testid="handover-photo-input" onChange={e => { takePhoto(e.target.files?.[0]); e.target.value = "" }} /></label>
+      <button className="min-h-14 w-full rounded-2xl bg-mint-500 text-lg font-semibold text-white disabled:bg-ink-100 disabled:text-ink-500" data-testid="handover-give"
+        disabled={busy || !can || (!r && !checked)} onClick={give} title={`Giao bé cho ${name}`}>{busy ? "Đang giao…" : can ? "✓ Đã giao bé" : r ? "🔒 Cần đủ 2 xác nhận" : "🔒 Không thể giao"}</button></div></div>;
 }
 
 function NewRequest({ attendanceId, init, onDone }: { attendanceId: string; init: { pickerName?: string; pickerPhone?: string; relation?: string }; onDone: (r: PickupRequest) => void }) {
