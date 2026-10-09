@@ -1,0 +1,19 @@
+/* In biên lai / phiếu chi khổ A5 (designer). Khung in: .print-a5. Ẩn phần tử bằng .no-print */
+@media print {
+  @page { size: A5 portrait; margin: 10mm; }
+  html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body * { visibility: hidden; }
+  .print-a5, .print-a5 * { visibility: visible; }
+  .print-a5 { position: absolute; inset: 0 auto auto 0; width: 128mm; margin: 0; padding: 0;
+    box-shadow: none !important; border-radius: 0 !important; background: #fff !important;
+    font-family: "Be Vietnam Pro", system-ui, sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1F2A37; }
+  .print-a5 h1, .print-a5 h2 { color: #1B7F62 !important; font-size: 15pt; text-align: center; margin: 4mm 0 1mm; letter-spacing: .5px; }
+  .print-a5 table { width: 100%; border-collapse: collapse; }
+  .print-a5 td, .print-a5 th { padding: 1.2mm 0; border-bottom: .2mm solid #EEF1F5; }
+  .print-a5 .amount, .print-a5 [data-amount] { text-align: right; font-variant-numeric: tabular-nums; }
+  .print-a5 .signatures { display: flex; justify-content: space-between; margin-top: 8mm; text-align: center; }
+  .print-a5 .signatures > * { width: 45%; min-height: 22mm; }
+  .print-a5, .print-a5 table, .print-a5 tr { break-inside: avoid; page-break-inside: avoid; }
+  nav, aside, button, .no-print { display: none !important; }
+}
+@media screen { .print-a5 { max-width: 148mm; margin-inline: auto; } }
