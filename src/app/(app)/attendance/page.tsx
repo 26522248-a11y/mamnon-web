@@ -13,7 +13,8 @@ type St = "unset" | "present" | "absent" | "excused" | "late";
 type Sheet = { childId: string; fullName: string; allergies?: string; status: "present" | "absent" | "late" | null; note: string | null; notifiedInAdvance: boolean; recorded: boolean;
   /** round2 §5 (absent before 2b ships) */ excused?: boolean; absenceReason?: string | null; absenceId?: string | null; absenceNote?: string | null; refundEligible?: boolean; photoConsent?: boolean; /** b205e5d */ excusedBy?: "parent" | "teacher" | null };
 type Row = { by?: "parent" | "teacher" | null; reason?: AbsenceReason | null; childId: string; fullName: string; allergies?: string; st: St; note: string; orig: St; origNote: string; auto?: boolean };
-const NEXT: Record<St, St> = { unset: "present", present: "absent", absent: "late", late: "present", excused: "present" };
+/** G14: one tap toggles Có mặt ↔ Vắng (Đi muộn / Có phép / lý do are set later from "Ghi lý do") */
+const NEXT: Record<St, St> = { unset: "present", present: "absent", absent: "present", late: "present", excused: "present" };
 const STYLE: Record<St, string> = { unset: "border-2 border-dashed border-ink-300 text-ink-500", present: "bg-mint-500 text-white", absent: "bg-rose-500 text-white", excused: "bg-sky-100 text-sky-500 ring-1 ring-sky-500", late: "bg-sun-500 text-ink-900" };
 const LABEL: Record<St, string> = { unset: "Chưa điểm", present: "Có mặt", absent: "Vắng", excused: "Vắng có phép", late: "Đi muộn" };
 const ABSENT_CHIPS = ["Không báo", "Ốm", "Việc nhà"];
@@ -23,6 +24,7 @@ const reasonText = (r: string) => ABSENCE_REASONS.find(x => x[0] === r)?.[1].rep
 
 export default function AttendancePage() {
   const me = api.me()!; const today = vnToday();
+  const [why, setWhy] = useState<Set<string>>(new Set()); // G14: rows with the reason chips opened
   const [classes, setClasses] = useState<ClassRoom[]>([]); const [classId, setClassId] = useState("");
   const [holiday, setHoliday] = useState<{ id: string; name: string } | null>(null); const [closure, setClosure] = useState<TodayClosure | null>(null);
   useEffect(() => { if (holiday) getTodayClosure().then(c => setClosure(c && c.id === holiday.id ? c : null)); else setClosure(null) }, [holiday]); const [override, setOverride] = useState(false);
@@ -80,13 +82,16 @@ export default function AttendancePage() {
       ✓ Cả lớp có mặt {unset ? `(${unset} bé chưa điểm` : "(đã điểm hết"}{count("excused") ? `, trừ bé đã báo nghỉ)` : ")"}</button>
     <div className="flex flex-wrap gap-2 text-sm">{(["present", "excused", "absent", "late", "unset"] as St[]).map(s => <span key={s} className={`whitespace-nowrap rounded-full px-3 py-1 ${STYLE[s]}`}>{LABEL[s]}: {count(s)}</span>)}</div>
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{rows.map(r => <div key={r.childId} className="card space-y-2" data-testid="att-row" data-status={r.st}>
-      <button onClick={() => set(r.childId, { st: NEXT[r.st], note: NEXT[r.st] === "absent" ? r.note : r.st === "excused" || r.st === "absent" ? "" : r.note })} className="flex min-h-12 w-full items-center justify-between gap-2 text-left active:scale-[0.98] transition">
+      <button onClick={() => set(r.childId, { st: NEXT[r.st], note: NEXT[r.st] === "absent" ? r.note : r.st === "excused" || r.st === "absent" || r.st === "late" ? "" : r.note })} className="flex min-h-12 w-full items-center justify-between gap-2 text-left active:scale-[0.98] transition">
         <span className="font-medium">{r.fullName}{medOf(r.childId) && <span title="Có dặn thuốc"> 💊</span>}{lateOf(r.childId) && <span title={`Đón muộn ${lateOf(r.childId)!.time}`}> ⏰</span>}</span>
         <span className={`flex min-h-12 min-w-28 items-center justify-center rounded-xl px-3 text-sm font-semibold ${STYLE[r.st]}`}>{LABEL[r.st]}</span></button>
       {r.st === "excused" && (() => { const by = r.auto ? "parent" : r.st === r.orig ? r.by : "teacher";
         return <p className="text-xs text-sky-500" data-testid="att-excused-by">{by && <span className="mr-1 rounded-full bg-sky-100 px-2 py-0.5 font-semibold">{by === "parent" ? "PH báo" : "Cô ghi"}</span>}{r.note}</p> })()}
-      {r.st === "absent" && <div className="flex flex-wrap gap-1" data-testid="att-reasons">{ABSENT_CHIPS.map(c => <button key={c} onClick={() => set(r.childId, { note: c })} className={`min-h-12 rounded-full px-3 text-xs ${r.note === c ? (c === "Không báo" ? "bg-rose-500 text-white" : "bg-ink-900 text-white") : "bg-ink-100"}`}>{c}</button>)}
-        <button onClick={() => set(r.childId, { st: "excused" })} className="min-h-12 rounded-full bg-sky-100 px-3 text-xs text-sky-500">Có phép</button></div>}</div>)}</div></>}
+      {(r.st === "absent" || r.st === "late") && !why.has(r.childId) && <button onClick={() => setWhy(w => new Set(w).add(r.childId))} className="min-h-12 text-sm text-ink-500 underline" data-testid="att-why">
+        {r.st === "late" ? "Đi muộn" : r.note ? `Lý do: ${r.note}` : "Ghi lý do"} · sửa ›</button>}
+      {(r.st === "absent" || r.st === "late") && why.has(r.childId) && <div className="flex flex-wrap gap-1" data-testid="att-reasons">
+        <button onClick={() => set(r.childId, { st: r.st === "late" ? "absent" : "late" })} className={`min-h-12 rounded-full px-3 text-xs ${r.st === "late" ? "bg-sun-500" : "bg-sun-100"}`} data-testid="att-late">Đi muộn</button>{r.st === "absent" && ABSENT_CHIPS.map(c => <button key={c} onClick={() => set(r.childId, { note: c })} className={`min-h-12 rounded-full px-3 text-xs ${r.note === c ? (c === "Không báo" ? "bg-rose-500 text-white" : "bg-ink-900 text-white") : "bg-ink-100"}`}>{c}</button>)}
+        {r.st === "absent" && <button onClick={() => set(r.childId, { st: "excused" })} className="min-h-12 rounded-full bg-sky-100 px-3 text-xs text-sky-500">Có phép</button>}</div>}</div>)}</div></>}
     {msg && <p role="status" className={`rounded-xl p-3 text-center text-sm font-semibold ${msg.startsWith("✓") ? "bg-mint-50 text-mint-700" : "bg-rose-100 text-rose-500"}`} data-testid="att-msg">{msg}</p>}
     <button className="btn sticky bottom-20 min-h-14 w-full !bg-peach-500 disabled:!bg-ink-100 shadow-lg md:bottom-4" disabled={saving || !dirty.length || !!holiday} onClick={save} data-testid="att-save">{saving ? "Đang lưu…" : `Lưu điểm danh${dirty.length ? ` (${dirty.length})` : ""}`}</button>
     <Link href="/pickups" className="block text-center text-sm text-mint-700 underline">Giao bé ›</Link>
