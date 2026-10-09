@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react"; import Link from "next/link"; import { api, http, todayStr } from "@/lib/api"; import { Child } from "@/lib/types";
-import { Photo } from "@/components/Photo"; import { InstallHint } from "@/components/InstallHint"; import { EAT, MOODS, sleepText } from "../notes/shared"; import { PickupLine } from "@/components/pickup";
+import { Photo } from "@/components/Photo"; import { SubstituteCard } from "@/components/SubstituteCard"; import { InstallHint } from "@/components/InstallHint"; import { EAT, MOODS, sleepText } from "../notes/shared"; import { PickupLine } from "@/components/pickup";
 import { parentFeed, PickupRequest } from "@/lib/pickup-api"; import { PickupConfirmCard, useKeptConfirmed } from "@/components/PickupConfirmCard"; import { PushOptIn } from "@/components/pickup-safety"; import { getTodayClosure, TodayClosure, listAbsences, reportAbsence, cancelAbsence, Absence, ABSENCE_REASONS, ABSENCE_ERR, AbsenceReason } from "@/lib/messages-api";
 type Att = { status: string | null; note: string | null; pickup: { pickedUpByName: string; pickedUpAt: string } | null };
 type Menu = { days: { date: string; meals: Record<string, string | null>; allergyNotes?: Record<string, string | null> }[] };
@@ -55,6 +55,7 @@ export default function Today() {
     {kids.length > 1 && <div className="flex gap-2">{kids.map((x, j) => <button key={x.id} onClick={() => setI(j)} className={`min-h-12 rounded-xl px-4 ${j === i ? "bg-mint-500 text-white" : "bg-white"}`}>{x.fullName.split(" ").pop()}</button>)}</div>}
     <div className="card flex items-center gap-4 bg-gradient-to-br from-mint-100 to-peach-50"><Photo url={k.photoUrl} id={k.id} withdrawn={k.status === "withdrawn"} size={72} />
       <div><div className="text-sm text-ink-500">Bé hôm nay · {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric" })}</div><h1 className="text-xl font-bold">{k.fullName}</h1><div className="text-sm">{k.className}</div></div></div>
+    <SubstituteCard childId={k.id} classId={k.classId} childName={`bé ${k.fullName.split(" ").pop()}`} today={d} />
     <Link href={`/today/log/${k.id}?tab=attendance`} className={`block rounded-2xl p-4 text-center text-lg font-semibold ${st[0]}`} data-testid="tile-attendance">{st[1]} <span className="text-sm font-normal opacity-80">›</span></Link>
     {abs || att?.status === "absent" ? <div className="card flex items-center justify-between gap-2 border-l-4 border-sky-500" data-testid="absence-reported"><span>🏠 <b>Đã báo nghỉ hôm nay</b>{abs && <span className="block text-sm text-ink-500">{ABSENCE_REASONS.find(r => r[0] === abs.reason)?.[1]}{abs.note ? ` · ${abs.note}` : ""}</span>}</span>
         {abs?.cancellable?.includes(d) && <button className="min-h-12 shrink-0 px-2 text-sm text-rose-500" onClick={undoAbsence} data-testid="absence-undo">Huỷ</button>}</div>
