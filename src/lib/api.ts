@@ -80,3 +80,7 @@ export function saveBase64(base64: string, fileName: string, mime = "application
   const bin = atob(base64); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   const u = URL.createObjectURL(new Blob([bytes], { type: mime })); saveUrl(u, fileName); setTimeout(() => URL.revokeObjectURL(u), 10000) }
 export const todayStr = () => new Date().toLocaleDateString("sv-SE");
+
+/** Landing page per role (H4 '/' and after login). */
+export const roleHome = (m: { role: string; mustChangePassword?: boolean } | null) =>
+  !m ? "/login" : m.mustChangePassword ? "/change-password" : m.role === "teacher" ? "/home" : m.role === "parent" ? "/today" : "/dashboard";
