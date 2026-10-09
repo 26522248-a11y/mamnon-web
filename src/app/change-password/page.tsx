@@ -10,6 +10,8 @@ export default function ChangePassword() {
   const me = typeof window !== "undefined" ? api.me() : null; useEffect(() => { if (!api.me()) r.replace("/login") }, [r]);
   const [feed, setFeed] = useState<PickupRequest[]>([]); const [pmsg, setPmsg] = useState(""); const { keep, show } = useKeptConfirmed();
   const parent = me?.role === "parent";
+  const [back, setBack] = useState<string | null>(null);
+  useEffect(() => { const m = api.me(); if (m && !m.mustChangePassword) setBack(m.role === "parent" ? "/account" : m.role === "teacher" ? "/attendance" : "/dashboard") }, []);
   useEffect(() => { if (!PICKUP_ON_CHANGE_PASSWORD || api.me()?.role !== "parent") return;
     const f = () => parentFeed().then(x => setFeed(x.items)).catch(() => {}); f(); const t = setInterval(f, 10000); return () => clearInterval(t) }, []);
   const pinned = parent ? feed.filter(show) : [];
@@ -22,6 +24,8 @@ export default function ChangePassword() {
       {pinned.map(x => <PickupConfirmCard key={x.id} r={x} onDone={(m, ok) => { if (ok) keep(x.id); setPmsg(ok ? "" : m); parentFeed().then(y => setFeed(y.items)).catch(() => {}) }} />)}
       {pmsg && <p className="rounded-2xl bg-mint-100 p-3 text-sm text-mint-700" data-testid="pickup-msg">{pmsg}</p>}
       <h2 className="pt-2 text-sm font-semibold text-ink-500" data-testid="cp-then">Sau đó, đặt mật khẩu mới</h2></div>}
+    {back && <div className="w-full max-w-sm"><button type="button" className="min-h-12 text-[15px] text-mint-700" data-testid="cp-back"
+      onClick={() => r.push(back)}>‹ {back === "/account" ? "Tài khoản" : "Quay lại"}</button></div>}
     <form onSubmit={submit} className="card w-full max-w-sm space-y-3">
     <h1 className="text-xl font-bold">Đổi mật khẩu</h1>{me?.mustChangePassword && <p className="rounded-xl bg-sun-100 p-3 text-sm">Đây là lần đầu bạn đăng nhập, vui lòng đặt mật khẩu mới để tiếp tục.</p>}
     <input className="input" type="password" placeholder="Mật khẩu hiện tại" value={cur} onChange={e => setCur(e.target.value)} autoComplete="current-password" required />

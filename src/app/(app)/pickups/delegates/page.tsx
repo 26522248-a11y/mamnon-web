@@ -1,5 +1,5 @@
 "use client";
-/** Screen 1 – Parent: "Ai được đón bé?" list + register a delegate (ảnh chân dung bắt buộc, CCCD 12 số, 2 SĐT). */
+/** Screen 1 – Parent: "Ai được đón bé?" list + register a delegate (U5: only name + phone required; relation chips, photo and ID number optional). */
 import { fmtDateTime } from "@/lib/date"; import { useCallback, useEffect, useState } from "react"; import Link from "next/link";
 import { api } from "@/lib/api"; import { Child } from "@/lib/types"; import { ApiError } from "@/lib/types";
 import { addDelegate, Delegate, idLast4, isAllowedPhoto, isHeic, PHOTO_ACCEPT, PHOTO_MAX_BYTES, PickupPeople, pickupPeople, removeDelegate, shrinkImage, updateContactPhones, ContactPhones, getContactPhones } from "@/lib/pickup-api";
@@ -44,35 +44,61 @@ export default function Delegates() {
   </div>;
 }
 
+const RELATIONS = ["Ông", "Bà", "Cô/Dì", "Chú/Bác", "Khác"];
+const PHONE_RE = /^(0|\+84)\d{9,10}$/;
+const Req = () => <span className="text-rose-500" aria-hidden> *</span>;
+
 function AddForm({ childId, onDone, onCancel }: { childId: string; onDone: (name: string) => void; onCancel: () => void }) {
   const [preview, setPreview] = useState<string | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const [rel, setRel] = useState(""); const [more, setMore] = useState(false);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview]);
   async function submit(e: React.FormEvent<HTMLFormElement>) { e.preventDefault(); setErr("");
-    const f = new FormData(e.currentTarget); const raw = f.get("photo") as File | null;
-    if (!raw || !raw.size) return setErr("Cần chụp ảnh chân dung người đón");
-    if (!isAllowedPhoto(raw)) return setErr("Ảnh phải là JPG, PNG hoặc HEIC");
-    const photo = await shrinkImage(raw); // HEIC the browser can't decode → sent as-is
-    if (photo.size > PHOTO_MAX_BYTES && !isHeic(photo)) return setErr("Ảnh tối đa 3MB, vui lòng chụp lại"); f.set("photo", photo);
-    const id = String(f.get("idNumber") ?? "").replace(/\s/g, ""); if (!/^\d{12}$/.test(id)) return setErr("Số căn cước phải đúng 12 chữ số"); f.set("idNumber", id);
-    if (!String(f.get("phone2") ?? "").trim()) f.delete("phone2");
+    const f = new FormData(e.currentTarget);
+    const name = String(f.get("fullName") ?? "").trim(); if (!name) return setErr("Vui lòng nhập họ tên người đón");
+    const p1 = String(f.get("phone1") ?? "").replace(/[\s.-]/g, ""); f.set("phone1", p1);
+    if (!p1) return setErr("Vui lòng nhập số điện thoại người đón");
+    if (!PHONE_RE.test(p1)) return setErr("Số điện thoại chưa đúng. Nhập 10 số, bắt đầu bằng 0 (ví dụ 0912 345 678)");
+    const p2 = String(f.get("phone2") ?? "").replace(/[\s.-]/g, "");
+    if (!p2) f.delete("phone2"); else if (!PHONE_RE.test(p2)) return setErr("Số điện thoại thứ hai chưa đúng. Nhập 10 số, bắt đầu bằng 0"); else if (p2 === p1) return setErr("Số thứ hai đang trùng số thứ nhất"); else f.set("phone2", p2);
+    if (rel) f.set("relation", rel); else f.delete("relation");
+    const id = String(f.get("idNumber") ?? "").replace(/\s/g, "");
+    if (!id) f.delete("idNumber"); else if (!/^\d{12}$/.test(id)) return setErr("Số căn cước phải đủ 12 chữ số (hoặc để trống)"); else f.set("idNumber", id);
+    const raw = f.get("photo") as File | null;
+    if (!raw || !raw.size) f.delete("photo");
+    else { if (!isAllowedPhoto(raw)) return setErr("Ảnh phải là JPG, PNG hoặc HEIC");
+      const photo = await shrinkImage(raw); // HEIC the browser can't decode → sent as-is
+      if (photo.size > PHOTO_MAX_BYTES && !isHeic(photo)) return setErr("Ảnh tối đa 3MB, vui lòng chụp lại"); f.set("photo", photo) }
     setBusy(true);
     try { const d = await addDelegate(childId, f); onDone(d.fullName) }
     catch (x) { setErr(x instanceof ApiError && x.code === 409 ? "Người này đã có trong danh sách đón bé" : (x as Error).message) } finally { setBusy(false) } }
-  return <form onSubmit={submit} className="card space-y-3 border-2 border-dashed border-mint-500" data-testid="delegate-form">
-    <b>+ Thêm người đón hộ</b>
-    <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl bg-mint-50 text-mint-700" data-testid="delegate-photo-label">
-      {preview ? <PreviewImg src={preview} /> : <span>📷 Chụp ảnh chân dung (bắt buộc)</span>}
-      <input type="file" name="photo" accept={PHOTO_ACCEPT} capture="user" className="sr-only" data-testid="delegate-photo"
-        onChange={e => { const file = e.target.files?.[0]; setPreview(file ? URL.createObjectURL(file) : null) }} /></label>
-    <input name="fullName" className="input" placeholder="Họ tên" required maxLength={120} data-testid="delegate-name" />
-    <input name="relation" className="input" placeholder="Quan hệ với bé (vd: Bà ngoại)" required maxLength={40} data-testid="delegate-relation" />
-    <input name="idNumber" className="input" placeholder="Số căn cước (12 số)" inputMode="numeric" pattern="\d{12}" maxLength={12} required data-testid="delegate-cccd" />
-    <input name="phone1" className="input" placeholder="📞 Số điện thoại ①" inputMode="tel" required data-testid="delegate-phone1" />
-    <input name="phone2" className="input" placeholder="📞 Số điện thoại ② (nếu có)" inputMode="tel" data-testid="delegate-phone2" />
-    <p className="text-xs text-ink-500">Số căn cước chỉ hiện 4 số cuối. Người mới thêm phải được nhà trường duyệt mới có hiệu lực.</p>
-    {err && <p className="text-sm text-rose-500" data-testid="delegate-error">{err}</p>}
-    <div className="flex gap-2"><button className="btn min-h-12 flex-1" disabled={busy} data-testid="delegate-submit">{busy ? "Đang gửi…" : "Gửi nhà trường duyệt"}</button>
-      <button type="button" className="btn min-h-12 flex-1 !bg-ink-300" onClick={onCancel}>Hủy</button></div></form>;
+  const field = "input min-h-14 text-[17px]";
+  return <form onSubmit={submit} noValidate className="card space-y-4 border-2 border-dashed border-mint-500" data-testid="delegate-form">
+    <b className="text-lg">+ Thêm người đón hộ</b>
+    <label className="block space-y-1"><span className="text-[17px] font-medium">Họ tên<Req /></span>
+      <input name="fullName" className={field} placeholder="Ví dụ: Nguyễn Văn Tư" maxLength={120} autoComplete="name" data-testid="delegate-name" /></label>
+    <label className="block space-y-1"><span className="text-[17px] font-medium">Số điện thoại<Req /></span>
+      <input name="phone1" className={field} placeholder="0912 345 678" inputMode="tel" autoComplete="tel" data-testid="delegate-phone1" /></label>
+    <div className="space-y-2"><span className="text-[17px] font-medium">Quan hệ với bé <span className="text-[15px] font-normal text-ink-500">(không bắt buộc)</span></span>
+      <div className="flex flex-wrap gap-2" data-testid="delegate-relation-chips">{RELATIONS.map(x => <button type="button" key={x} aria-pressed={rel === x} data-testid="delegate-relation-chip"
+        onClick={() => setRel(rel === x ? "" : x)} className={`min-h-12 rounded-full border px-4 text-[17px] ${rel === x ? "border-mint-500 bg-mint-500 text-white" : "border-ink-100 bg-white"}`}>{x}</button>)}</div></div>
+    <div className="rounded-2xl bg-ink-100/60 p-3" data-testid="delegate-optional">
+      <button type="button" className="flex min-h-12 w-full items-center justify-between text-left text-[17px] font-medium" onClick={() => setMore(!more)} aria-expanded={more} data-testid="delegate-optional-toggle">
+        <span>Ảnh, số căn cước, số thứ hai <span className="text-[15px] font-normal text-ink-500">(không bắt buộc)</span></span><span>{more ? "▴" : "▾"}</span></button>
+      <p className="text-[15px] text-ink-500">Chưa có ảnh cũng được, cô sẽ chụp ảnh ở lần đón đầu tiên.</p>
+      <div className={more ? "mt-3 space-y-3" : "hidden"}>
+        <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl bg-mint-50 text-[17px] text-mint-700" data-testid="delegate-photo-label">
+          {preview ? <PreviewImg src={preview} /> : <span>📷 Chụp / chọn ảnh chân dung</span>}
+          <input type="file" name="photo" accept={PHOTO_ACCEPT} capture="user" className="sr-only" data-testid="delegate-photo"
+            onChange={e => { const file = e.target.files?.[0]; setPreview(file ? URL.createObjectURL(file) : null) }} /></label>
+        <label className="block space-y-1"><span className="text-[15px] text-ink-700">Số căn cước (12 số)</span>
+          <input name="idNumber" className={field} inputMode="numeric" maxLength={14} data-testid="delegate-cccd" /></label>
+        <label className="block space-y-1"><span className="text-[15px] text-ink-700">Số điện thoại thứ hai</span>
+          <input name="phone2" className={field} inputMode="tel" data-testid="delegate-phone2" /></label>
+        <p className="text-[15px] text-ink-500">Số căn cước chỉ hiện 4 số cuối.</p></div></div>
+    <p className="text-[15px] text-ink-500">Người mới thêm cần nhà trường duyệt mới có hiệu lực.</p>
+    {err && <p className="rounded-xl bg-rose-100 p-3 text-[17px] text-rose-500" role="alert" data-testid="delegate-error">{err}</p>}
+    <div className="grid grid-cols-2 gap-2"><button className="btn min-h-14 text-[17px]" disabled={busy} data-testid="delegate-submit">{busy ? "Đang gửi…" : "Gửi nhà trường duyệt"}</button>
+      <button type="button" className="btn min-h-14 !bg-ink-300 text-[17px]" onClick={onCancel}>Hủy</button></div></form>;
 }
 
 /** Parent's own ① / ② numbers (called in order after 15 minutes). Saving asks for confirmation; the school is notified. */

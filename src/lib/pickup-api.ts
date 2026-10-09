@@ -10,12 +10,12 @@ export type Blocker = "EXPIRED" | "REJECTED" | "PARENT_PENDING" | "SCHOOL_PENDIN
 
 export type Delegate = {
   id: string; childId: string; childName?: string; fullName: string; relation: string | null; phone1: string; phone2: string | null;
-  idNumberMasked: string | null; photoUrl: string; status: Step; onList?: boolean;
+  idNumberMasked: string | null; photoUrl: string | null; status: Step; onList?: boolean;
   decidedByName?: string | null; decidedAt?: string | null; decisionNote?: string | null; createdByName?: string | null; createdAt: string; updatedAt?: string;
 };
 export type PickupPeople = {
   childId: string;
-  guardians: { id: string; fullName: string; relation: string; phone: string | null; idNumberMasked: string | null; canPickup: boolean; isParentAccount: boolean; onList: boolean }[];
+  guardians: { id: string; fullName: string; relation: string; phone: string | null; idNumberMasked: string | null; canPickup: boolean; isParentAccount: boolean; isMe?: boolean; onList: boolean }[];
   authorizedPickers: Delegate[];
 };
 export type CallAttempt = { id: string; phone: string; guardianId: string | null; outcome: CallOutcome; note: string | null; calledBy: string; calledByName: string | null; at: string };

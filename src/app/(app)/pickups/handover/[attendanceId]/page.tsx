@@ -74,7 +74,7 @@ function Detail({ o, sel, reload, onDone }: { o: PickupOptions; sel: Sel; reload
   return <div className="space-y-3" data-testid="handover-detail" data-kind={sel.kind}>
     {shotUrl ? <PreviewImg src={shotUrl} className="h-72 w-full rounded-2xl object-cover" /> : shot ? <div className="flex h-72 items-center justify-center rounded-2xl bg-ink-100">📷 Đã chụp ảnh (HEIC)</div>
       : <PersonPhoto url={idt?.photoUrl ?? (p?.photoUrl ?? r?.photoUrl)} alt={name} className="h-72 w-full" testid="handover-photo" />}
-    {firstTime && !shot && <p className="rounded-xl bg-sun-100 p-2 text-center text-sm" data-testid="handover-first-time">Lần đón đầu, chụp ảnh giúp</p>}
+    {firstTime && !shot && <p className="rounded-xl bg-peach-100 p-2 text-center text-[15px] text-peach-600" data-testid="handover-first-time">Lần đón đầu, chụp ảnh giúp</p>}
     <div className="flex items-center gap-3"><div className="min-w-0 flex-1 text-center"><div className="text-2xl font-bold">{name}</div>{phone && <div className="text-ink-500">{phone}</div>}</div>
       {phone && <a href={`tel:${phone.replace(/\s/g, "")}`} className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-mint-100 text-2xl" aria-label={`Gọi ${name}`} data-testid="handover-call">📞</a>}</div>
     <div className="text-center">
