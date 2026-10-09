@@ -21,7 +21,7 @@ export function SubstituteCard({ classId, childName, today }: { classId?: string
     if (!classId) return;
     http.get<{ items: N[] }>("/notifications?limit=50").then(p => {
       const seen = new Set<string>();
-      setItems(p.items.filter(n => n.type === "substitute_teacher" && n.data?.date && n.data.date >= today && (!n.data.classId || n.data.classId === classId))
+      setItems(p.items.filter(n => n.type === "substitute_teacher" && n.data?.date && n.data.date >= today && n.data.classId === classId)
         .map(n => n.data as D).filter(d => { const k = d.substitutionId ?? `${d.date}${d.session}`; if (seen.has(k)) return false; seen.add(k); return true })
         .sort((a, b) => a.date!.localeCompare(b.date!)).slice(0, 3));
     }).catch(() => setItems([]));
