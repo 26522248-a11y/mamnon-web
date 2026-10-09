@@ -51,7 +51,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <main className="flex-1 p-4 pb-24 md:p-8">{children}</main>
     {me.role === "parent" ? <ParentNav path={path} /> : <>
     <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-white pb-[env(safe-area-inset-bottom)] md:hidden print:hidden" data-testid="mobile-nav">
-      {tabs.map(n => <Link key={n.href} href={n.href} data-testid={`nav-tab-${n.href.slice(1)}`} className={`flex min-h-14 flex-1 flex-col items-center justify-center py-1 text-[11px] ${path.startsWith(n.href) && !more ? "font-semibold text-mint-700" : "text-ink-500"}`}><div className="text-xl">{n.icon}</div>{n.label}</Link>)}
+      {tabs.map(n => <Link key={n.href} href={n.href} data-testid={`nav-tab-${n.href.slice(1)}`} className={`flex min-h-14 flex-1 flex-col items-center justify-center py-1 text-[11px] ${path.startsWith(n.href) && !more ? "font-semibold text-mint-700" : "text-ink-500"}`}><div className="text-xl">{n.icon}</div>{me.role === "teacher" && n.href === "/pickups" ? "Giao bé" : n.label}</Link>)}
       <button onClick={() => setMore(!more)} data-testid="nav-more" aria-expanded={more} className={`flex min-h-14 flex-1 flex-col items-center justify-center py-1 text-[11px] ${more || rest.some(n => path.startsWith(n.href)) ? "font-semibold text-mint-700" : "text-ink-500"}`}><div className="text-xl">☰</div>Thêm</button>
     </nav></>}
     {more && me.role !== "parent" && <div className="fixed inset-0 z-20 bg-ink-900/30 md:hidden print:hidden" onClick={() => setMore(false)}>
