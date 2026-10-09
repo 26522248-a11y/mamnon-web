@@ -1,5 +1,6 @@
 "use client";
-/** U1: Render (gói Free) ngủ → lần mở đầu chờ ~20–30 giây. Thay vì trang trắng: màn "Đang tải…" (tên trường + vòng xoay), báo đang khởi động, nút Thử lại. */
+/** Only a network error / 5xx keeps waiting (max 60 s, then "Thử lại" or "Vẫn vào ứng dụng"); any other response lets the user in.
+ * U1: Render (gói Free) ngủ → lần mở đầu chờ ~20–30 giây. Thay vì trang trắng: màn "Đang tải…" (tên trường + vòng xoay), báo đang khởi động, nút Thử lại. */
 import { useCallback, useEffect, useRef, useState } from "react"; import { API_ORIGIN } from "@/lib/api";
 const SHOW_AFTER = 700, SLOW_AFTER = 5000, GIVE_UP = 60000;
 export function ServerWake() {
@@ -8,7 +9,7 @@ export function ServerWake() {
     const n = ++tries.current; let done = false; const t0 = Date.now();
     const show = setTimeout(() => { if (!done) setState("wait") }, SHOW_AFTER); const slow = setTimeout(() => { if (!done) setState("slow") }, SLOW_AFTER);
     while (!done && Date.now() - t0 < GIVE_UP && n === tries.current) {
-      try { const r = await fetch(`${API_ORIGIN}/api/v1/health/ping`, { cache: "no-store", signal: AbortSignal.timeout(20000) }); if (r.ok) done = true; } catch { /* retry */ }
+      try { const r = await fetch(`${API_ORIGIN}/api/v1/health/ping`, { cache: "no-store", signal: AbortSignal.timeout(20000) }); if (r.status < 500) done = true; /* server answered (even 404 on an older backend) → let the user in */ } catch { /* network error → retry */ }
       if (!done) await new Promise(r => setTimeout(r, 2000));
     }
     clearTimeout(show); clearTimeout(slow); if (n === tries.current) setState(done ? "ok" : "fail");
@@ -22,6 +23,7 @@ export function ServerWake() {
       <div className="text-lg font-semibold">Đang tải…</div>
       {state === "slow" && <p className="max-w-xs text-ink-500" data-testid="server-wake-slow">Máy chủ đang khởi động, có thể mất khoảng 30 giây. Vui lòng đợi một chút.</p>}</>
       : <><p className="max-w-xs text-ink-500">Chưa kết nối được máy chủ. Kiểm tra mạng rồi thử lại.</p>
-        <button className="btn min-h-12 px-6" onClick={() => { setState("wait"); ping() }} data-testid="server-wake-retry">Thử lại</button></>}
+        <button className="btn min-h-12 px-6" onClick={() => { setState("wait"); ping() }} data-testid="server-wake-retry">Thử lại</button>
+        <button className="min-h-12 px-6 text-mint-700 underline" onClick={() => { tries.current++; setState("ok") }} data-testid="server-wake-enter">Vẫn vào ứng dụng</button></>}
   </div>;
 }
