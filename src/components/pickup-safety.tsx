@@ -5,11 +5,12 @@ import { useEffect, useState } from "react"; import { http } from "@/lib/api";
 import { PushState, pushState, StepInfo, subscribePush } from "@/lib/pickup-api";
 
 /** Large rectangular photo of the picker (token-protected URL → blob). */
-export function PersonPhoto({ url, alt, className = "h-40 w-full", testid }: { url: string | null | undefined; alt: string; className?: string; testid?: string }) {
+export function PersonPhoto({ url, alt, className = "h-40 w-full", testid, hideMissing }: { url: string | null | undefined; alt: string; className?: string; testid?: string; /** D1: ảnh không tải được → ẩn hẳn khung thay vì "Chưa có ảnh" */ hideMissing?: boolean }) {
   const [src, setSrc] = useState<string | null>(null); const [failed, setFailed] = useState(false);
   useEffect(() => { let u: string | null = null; let live = true; setSrc(null); setFailed(false);
     if (url) http.blobUrl(url).then(x => { u = x; if (live) { if (x) setSrc(x); else setFailed(true) } }).catch(() => live && setFailed(true));
     return () => { live = false; if (u) URL.revokeObjectURL(u) } }, [url]);
+  if (hideMissing && (!url || failed)) return null;
   return <div data-testid={testid} className={`flex items-center justify-center overflow-hidden rounded-2xl bg-ink-100 ${className}`}>
     {src ? <img src={src} alt={alt} className="h-full w-full object-cover" /> : <span className="text-center text-sm text-ink-500">{!url || failed ? <>🧑<br />Chưa có ảnh</> : "Đang tải ảnh…"}</span>}</div>;
 }

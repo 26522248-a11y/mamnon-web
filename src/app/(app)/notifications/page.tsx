@@ -8,7 +8,7 @@ type PU = { photoUrl?: string | null; schoolPhone?: string | null; pickedUpByNam
 /** U10: thẻ "Bé đã được đón" – ảnh lúc giao (nếu có) + nút gọi trường nếu không phải người nhà. */
 function PickedUp({ d }: { d: PU }) {
   return <div className="mt-2 space-y-2" data-testid="picked-up-card">
-    {d.photoUrl && <PersonPhoto url={d.photoUrl} alt={d.pickedUpByName ?? "Người đón"} className="h-48 w-full" testid="picked-up-photo" />}
+    {d.photoUrl && <PersonPhoto url={d.photoUrl} alt={d.pickedUpByName ?? "Người đón"} className="h-48 w-full" testid="picked-up-photo" hideMissing />}
     {d.schoolPhone && <a href={`tel:${d.schoolPhone.replace(/\s/g, "")}`} className="flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-rose-100 px-3 text-[15px] font-semibold text-rose-500" data-testid="picked-up-call-school">
       👴 Không phải người nhà? Gọi trường ngay</a>}</div>;
 }
