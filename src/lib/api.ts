@@ -15,6 +15,7 @@ async function refresh(): Promise<boolean> {
 export const NET_ERR = "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại nhé.";
 export function viMsg(status: number, msg?: string | null): string {
   if (status === 0) return NET_ERR;
+  if (status === 503) return "Máy chủ đang bận, đợi vài giây rồi gửi lại nhé."; // B31: hàng đợi xử lý ảnh đầy
   if (status >= 500) return "Máy chủ đang bận hoặc gặp sự cố. Vui lòng thử lại sau ít phút.";
   if (msg && !/^[\x00-\x7F]*$/.test(msg)) return msg; // đã là tiếng Việt
   if (status === 403) return "Bạn không có quyền làm việc này.";
