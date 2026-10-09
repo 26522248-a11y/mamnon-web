@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react"; import { useParams } from "next/navigation"; import Link from "next/link";
-import { api, http, todayStr } from "@/lib/api"; import { Child } from "@/lib/types"; import { Photo, WithdrawnBadge } from "@/components/Photo"; import { PickupLine, PickupReq } from "@/components/pickup"; import { unlinkGuardian } from "@/lib/guardian-api"; import { parentFeed, PickupRequest } from "@/lib/pickup-api"; import { PickupConfirmCard, useKeptConfirmed } from "@/components/PickupConfirmCard"; import { PhotoConsentToggle } from "@/components/PhotoConsentToggle"; import { fmtDate } from "@/lib/date";
+import { api, http, todayStr } from "@/lib/api"; import { Child } from "@/lib/types"; import { Photo, WithdrawnBadge } from "@/components/Photo"; import { PickupLine, PickupReq } from "@/components/pickup"; import { unlinkGuardian } from "@/lib/guardian-api"; import { parentFeed, PickupRequest } from "@/lib/pickup-api"; import { PickupConfirmCard, useKeptConfirmed } from "@/components/PickupConfirmCard"; import { PhotoConsentToggle } from "@/components/PhotoConsentToggle"; import { fmtDate } from "@/lib/date"; import { DateField } from "@/components/DateField";
 type Guardian = { id: string; fullName: string; relation: string; phone: string; canPickup: boolean };
 type Att = { id: string; date: string; status: string | null; note: string | null; pickup: { pickedUpByName: string; relation?: string; pickedUpAt: string } | null };
 type Growth = { id: string; date: string; heightCm: number; weightKg: number; bmi: number };
@@ -11,7 +11,7 @@ export default function ChildDetail() {
   const [c, setC] = useState<Child & { address?: string; healthNotes?: string } | null>(null); const [gs, setGs] = useState<Guardian[]>([]);
   const [att, setAtt] = useState<Att | null>(null); const [reqs, setReqs] = useState<PickupReq[]>([]); const [growth, setGrowth] = useState<Growth[]>([]);
   const [feed, setFeed] = useState<PickupRequest[]>([]); const { keep, show } = useKeptConfirmed(); const [pmsg, setPmsg] = useState("");
-  const [hist, setHist] = useState<Hist[]>([]); const [msg, setMsg] = useState(""); const [err, setErr] = useState("");
+  const [hist, setHist] = useState<Hist[]>([]); const [msg, setMsg] = useState(""); const [rmsg, setRmsg] = useState(""); const [err, setErr] = useState("");
   const load = useCallback(async () => { const d = todayStr();
     http.get<typeof c>(`/children/${id}`).then(setC).catch(e => setErr(e.message));
     http.get<Guardian[]>(`/children/${id}/guardians`).then(setGs).catch(() => {});
@@ -30,6 +30,8 @@ export default function ChildDetail() {
     <div className="card flex items-center gap-4"><Photo url={c.photoUrl} id={c.id} withdrawn={c.status === "withdrawn"} size={80} noConsent={c.photoConsent === false} />
       <div><h1 className="text-2xl font-bold">{c.fullName} {c.status === "withdrawn" && <WithdrawnBadge className="align-middle" />}</h1><div className="text-ink-500">{c.className} · Sinh {fmtDate(c.dob)} · {c.gender === "F" ? "Nữ" : "Nam"}</div>
         {c.allergies && <span className="mt-1 inline-block rounded-full bg-rose-100 px-3 py-1 text-sm text-rose-500">⚠ Dị ứng: {c.allergies}</span>}</div></div>
+    {me.role === "admin" && c.status === "withdrawn" && <Reenroll childId={c.id} leaveDate={c.leaveDate ?? null} classId={c.classId} onDone={m => { setRmsg(m); load() }} />}
+    {rmsg && <p className="rounded-2xl bg-mint-100 p-3 text-sm text-mint-700" role="status" data-testid="reenroll-msg">{rmsg}</p>}
     <PhotoConsentToggle childId={c.id} canEdit={me.role === "admin" || me.role === "parent"} />
     <div className="grid gap-4 md:grid-cols-2">
       <section className="card space-y-3"><h2 className="text-lg font-semibold">Hôm nay</h2>
@@ -63,3 +65,30 @@ function UnlinkGuardian({ childId, childName, g, onDone }: { childId: string; ch
     <div className="flex gap-2"><button className="btn min-h-12 flex-1 !bg-rose-500 disabled:!bg-ink-100" disabled={busy} onClick={go} data-testid="guardian-unlink-submit">Gỡ liên kết</button>
       <button className="btn min-h-12 flex-1 !bg-ink-300" onClick={() => setOpen(false)}>Hủy</button></div></div>;
 }
+
+/** B12 – admin: re-enroll a withdrawn child into a chosen class from a start date (history, invoices and balances are kept). */
+function Reenroll({ childId, leaveDate, classId, onDone }: { childId: string; leaveDate: string | null; classId: string; onDone: (msg: string) => void }) {
+  const [open, setOpen] = useState(false); const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
+  const [f, setF] = useState({ classId, startDate: todayStr(), note: "" }); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  useEffect(() => { if (open && !classes.length) api.classes().then(setClasses).catch(() => {}) }, [open, classes.length]);
+  const go = async () => {
+    if (!f.classId) return setErr("Chọn lớp"); if (leaveDate && f.startDate <= leaveDate) return setErr(`Ngày học lại phải sau ngày nghỉ (${fmtDate(leaveDate)})`);
+    setBusy(true); setErr("");
+    try {
+      const r = await http.post<{ className: string; startDate: string; warnings: { message: string }[] }>(`/children/${childId}/reenroll`, { classId: f.classId, startDate: f.startDate, note: f.note.trim() || undefined });
+      setOpen(false); onDone(`Đã nhập học lại vào lớp ${r.className} từ ${fmtDate(r.startDate)}${r.warnings.length ? " · " + r.warnings.map(w => w.message).join("; ") : ""}`);
+    } catch (e) { setErr((e as Error).message) } finally { setBusy(false) } };
+  return <div className="card space-y-2 border-2 border-mint-100" data-testid="reenroll">
+    <div className="flex flex-wrap items-center justify-between gap-2"><div><b>Bé đã nghỉ học</b>{leaveDate && <span className="text-sm text-ink-500"> từ {fmtDate(leaveDate)}</span>}
+      <p className="text-xs text-ink-500">Nhập học lại giữ nguyên điểm danh, nhật ký, hoá đơn và công nợ cũ.</p></div>
+      {!open && <button className="btn" onClick={() => setOpen(true)} data-testid="reenroll-open">Nhập học lại</button>}</div>
+    {open && <div className="grid gap-2 sm:grid-cols-3">
+      <select className="input" value={f.classId} onChange={e => setF({ ...f, classId: e.target.value })} data-testid="reenroll-class" aria-label="Lớp">
+        <option value="">Chọn lớp…</option>{classes.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}</select>
+      <DateField value={f.startDate} min={leaveDate ? addDay(leaveDate) : undefined} onChange={v => setF({ ...f, startDate: v })} data-testid="reenroll-start" aria-label="Ngày học lại" />
+      <input className="input" placeholder="Ghi chú (tuỳ chọn)" maxLength={500} value={f.note} onChange={e => setF({ ...f, note: e.target.value })} data-testid="reenroll-note" />
+      {err && <p className="text-sm text-rose-500 sm:col-span-3">{err}</p>}
+      <div className="flex gap-2 sm:col-span-3"><button className="btn min-h-12 flex-1" disabled={busy} onClick={go} data-testid="reenroll-submit">Nhập học lại</button>
+        <button className="btn min-h-12 flex-1 !bg-ink-100 !text-ink-700" onClick={() => setOpen(false)}>Hủy</button></div></div>}</div>;
+}
+const addDay = (d: string) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + 1); return x.toLocaleDateString("sv-SE") };
