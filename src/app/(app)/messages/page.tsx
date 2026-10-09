@@ -179,7 +179,7 @@ function AbsenceHistory({ items, holidays, cutoff, from, to }: { items: Absence[
   const cut = cutoff.replace(/^0(\d)/, "$1"); // "08:00" → "8:00"
   const months = Array.from(new Set(rows.map(r => r.d.date.slice(0, 7))));
   const sent = (iso: string) => fmtDateTime(iso);
-  return <section className="space-y-2 text-ink-500" data-testid="absence-history"><h2 className="text-sm font-semibold uppercase tracking-wide">Đã qua</h2>
+  return <section className="space-y-2 text-ink-500" data-testid="absence-history"><h2 className="font-semibold text-ink-700">Báo trước {Number(cut.split(":")[0])} giờ sáng thì trường trả lại tiền ăn</h2><p className="text-sm">Những ngày bé nghỉ trong 30 ngày qua:</p>
     {!rows.length && <p className="text-sm">Không có ngày nghỉ nào trong 30 ngày qua.</p>}
     {months.map(m => { const list = rows.filter(r => r.d.date.startsWith(m)); const refunds = list.filter(r => r.d.refundEligible === true).length;
       return <div key={m} className="card space-y-1" data-testid="absence-history-month">

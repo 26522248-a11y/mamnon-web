@@ -26,15 +26,15 @@ export default function Delegates() {
     {kids.length > 1 && <div className="flex gap-2">{kids.map((x, j) => <button key={x.id} onClick={() => { setI(j); setAdding(false) }} className={`min-h-12 rounded-xl px-4 ${j === i ? "bg-mint-500 text-white" : "bg-white"}`}>{x.fullName.split(" ").pop()}</button>)}</div>}
     {!p ? <p>Đang tải…</p> : <>
       {parents.map(g => <div key={g.id} className="card flex items-center gap-3" data-testid="guardian-row"><span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-peach-100 text-2xl">👤</span>
-        <div className="flex-1"><b>{g.relation} · {g.fullName}</b><div className="text-sm text-ink-500">Căn cước {idLast4(g.idNumberMasked)}</div></div>
+        <div className="flex-1"><b>{g.relation} · {g.fullName}</b><div className="text-sm text-ink-500">Giấy tờ số …{idLast4(g.idNumberMasked)}</div></div>
         <span className="rounded-full bg-mint-100 px-3 py-1 text-xs font-semibold text-mint-700">Bố mẹ / giám hộ</span></div>)}
       {p.authorizedPickers.map(d => { const [cls, label] = CHIP[d.status] ?? CHIP.pending;
         return <div key={d.id} className="card space-y-2" data-testid="delegate-row" data-status={d.status}><div className="flex items-center gap-3">
           <PersonPhoto url={d.photoUrl} alt={d.fullName} className="h-16 w-16 shrink-0" />
-          <div className="min-w-0 flex-1"><b>{d.relation ? `${d.relation} · ` : ""}{d.fullName}</b><div className="text-sm text-ink-500">Căn cước {idLast4(d.idNumberMasked)}</div>
+          <div className="min-w-0 flex-1"><b>{d.relation ? `${d.relation} · ` : ""}{d.fullName}</b><div className="text-sm text-ink-500">Giấy tờ số …{idLast4(d.idNumberMasked)}</div>
             <div className="text-sm text-ink-500">① {d.phone1}{d.phone2 && <> · ② {d.phone2}</>}</div></div>
           <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${cls}`} data-testid="delegate-status">{label}</span></div>
-          {d.status === "pending" && <p className="text-xs text-ink-500">Chưa có hiệu lực: nhà trường duyệt xong thì người này mới đón bé được (cô giáo đối chiếu ảnh và căn cước).</p>}
+          {d.status === "pending" && <p className="text-xs text-ink-500">Chưa có hiệu lực: nhà trường duyệt xong thì người này mới đón bé được (cô giáo đối chiếu ảnh và giấy tờ).</p>}
           {d.status === "rejected" && d.decisionNote && <p className="text-sm text-rose-500">Lý do: {d.decisionNote}</p>}
           <button className="min-h-12 text-sm text-rose-500 underline" onClick={() => del(d)} data-testid="delegate-remove">Xoá người này</button></div> })}
       {adding ? <AddForm childId={k.id} onDone={(name) => { setAdding(false); setMsg(`Đã gửi ${name}, chờ nhà trường duyệt`); load() }} onCancel={() => setAdding(false)} />
@@ -62,7 +62,7 @@ function AddForm({ childId, onDone, onCancel }: { childId: string; onDone: (name
     if (!p2) f.delete("phone2"); else if (!PHONE_RE.test(p2)) return setErr("Số điện thoại thứ hai chưa đúng. Nhập 10 số, bắt đầu bằng 0"); else if (p2 === p1) return setErr("Số thứ hai đang trùng số thứ nhất"); else f.set("phone2", p2);
     if (rel) f.set("relation", rel); else f.delete("relation");
     const id = String(f.get("idNumber") ?? "").replace(/\s/g, "");
-    if (!id) f.delete("idNumber"); else if (!/^\d{12}$/.test(id)) return setErr("Số căn cước phải đủ 12 chữ số (hoặc để trống)"); else f.set("idNumber", id);
+    if (!id) f.delete("idNumber"); else if (!/^\d{12}$/.test(id)) return setErr("Số giấy tờ phải đủ 12 chữ số (hoặc để trống)"); else f.set("idNumber", id);
     const raw = f.get("photo") as File | null;
     if (!raw || !raw.size) f.delete("photo");
     else { if (!isAllowedPhoto(raw)) return setErr("Ảnh phải là JPG, PNG hoặc HEIC");
@@ -83,18 +83,18 @@ function AddForm({ childId, onDone, onCancel }: { childId: string; onDone: (name
         onClick={() => setRel(rel === x ? "" : x)} className={`min-h-12 rounded-full border px-4 text-[17px] ${rel === x ? "border-mint-500 bg-mint-500 text-white" : "border-ink-100 bg-white"}`}>{x}</button>)}</div></div>
     <div className="rounded-2xl bg-ink-100/60 p-3" data-testid="delegate-optional">
       <button type="button" className="flex min-h-12 w-full items-center justify-between text-left text-[17px] font-medium" onClick={() => setMore(!more)} aria-expanded={more} data-testid="delegate-optional-toggle">
-        <span>Ảnh, số căn cước, số thứ hai <span className="text-[15px] font-normal text-ink-500">(không bắt buộc)</span></span><span>{more ? "▴" : "▾"}</span></button>
+        <span>Ảnh, giấy tờ, số thứ hai <span className="text-[15px] font-normal text-ink-500">(không bắt buộc)</span></span><span>{more ? "▴" : "▾"}</span></button>
       <p className="text-[15px] text-ink-500">Chưa có ảnh cũng được, cô sẽ chụp ảnh ở lần đón đầu tiên.</p>
       <div className={more ? "mt-3 space-y-3" : "hidden"}>
         <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl bg-mint-50 text-[17px] text-mint-700" data-testid="delegate-photo-label">
           {preview ? <PreviewImg src={preview} /> : <span>📷 Chụp / chọn ảnh chân dung</span>}
           <input type="file" name="photo" accept={PHOTO_ACCEPT} capture="user" className="sr-only" data-testid="delegate-photo"
             onChange={e => { const file = e.target.files?.[0]; setPreview(file ? URL.createObjectURL(file) : null) }} /></label>
-        <label className="block space-y-1"><span className="text-[15px] text-ink-700">Số căn cước (12 số)</span>
+        <label className="block space-y-1"><span className="text-[15px] text-ink-700">Số giấy tờ tùy thân (12 số)</span>
           <input name="idNumber" className={field} inputMode="numeric" maxLength={14} data-testid="delegate-cccd" /></label>
         <label className="block space-y-1"><span className="text-[15px] text-ink-700">Số điện thoại thứ hai</span>
           <input name="phone2" className={field} inputMode="tel" data-testid="delegate-phone2" /></label>
-        <p className="text-[15px] text-ink-500">Số căn cước chỉ hiện 4 số cuối.</p></div></div>
+        <p className="text-[15px] text-ink-500">Số giấy tờ chỉ hiện 4 số cuối.</p></div></div>
     <p className="text-[15px] text-ink-500">Người mới thêm cần nhà trường duyệt mới có hiệu lực.</p>
     {err && <p className="rounded-xl bg-rose-100 p-3 text-[17px] text-rose-500" role="alert" data-testid="delegate-error">{err}</p>}
     <div className="grid grid-cols-2 gap-2"><button className="btn min-h-14 text-[17px]" disabled={busy} data-testid="delegate-submit">{busy ? "Đang gửi…" : "Gửi nhà trường duyệt"}</button>

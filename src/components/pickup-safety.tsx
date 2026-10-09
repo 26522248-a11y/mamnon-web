@@ -54,10 +54,11 @@ export function ReasonBox({ presets, onSubmit, onCancel, busy, label = "Từ ch�
 
 /** "Bật thông báo đón bé": subscribe to Web Push via GET /push/vapid-public-key + POST /push/subscriptions. */
 export function PushOptIn() {
-  const [st, setSt] = useState<PushState | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
+  const [st, setSt] = useState<PushState | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState(""); const [hid, setHid] = useState(false);
+  useEffect(() => { setHid(localStorage.getItem("pushDeniedHidden") === "1") }, []);
   useEffect(() => { pushState().then(setSt).catch(() => setSt("unsupported")) }, []);
   if (!st || st === "subscribed" || st === "disabled" || st === "unsupported") return null;
-  if (st === "denied") return <p className="rounded-2xl bg-sun-100 p-3 text-sm" data-testid="push-denied">🔕 Bạn đã chặn thông báo. Mở Cài đặt trình duyệt để bật lại, nếu không sẽ lỡ yêu cầu xác nhận người đón bé.</p>;
+  if (st === "denied") return hid ? null : <div className="flex items-start gap-2 rounded-2xl bg-sun-100 p-3 text-sm" data-testid="push-denied"><p className="flex-1">🔕 Điện thoại đang tắt thông báo của app. Khi có người đến đón con, bạn sẽ không nhận được tin báo ngay. Muốn bật lại: vào Cài đặt của trình duyệt, chọn Thông báo, rồi cho phép trang này.</p><button className="min-h-12 shrink-0 rounded-xl bg-white px-4 font-semibold" data-testid="push-denied-hide" onClick={() => { localStorage.setItem("pushDeniedHidden", "1"); setHid(true) }}>Ẩn</button></div>;
   return <div className="card flex items-center justify-between gap-3 border-l-4 border-sun-500" data-testid="push-optin">
     <span className="text-sm">🔔 Bật thông báo để xác nhận ngay khi có người đến đón bé{err && <span className="block text-rose-500">{err}</span>}</span>
     <button className="btn min-h-12 shrink-0" disabled={busy} data-testid="push-enable" onClick={async () => { setBusy(true); setErr("");
