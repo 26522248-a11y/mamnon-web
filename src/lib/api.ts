@@ -4,7 +4,9 @@ const BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001") + "/ap
 let token: string | null = null; let refreshing: Promise<boolean> | null = null;
 async function refresh(): Promise<boolean> {
   refreshing ??= fetch(BASE + "/auth/refresh", { method: "POST", credentials: "include" })
-    .then(async r => { if (!r.ok) return false; token = (await r.json()).accessToken; return true }).catch(() => false)
+    .then(async r => { if (!r.ok) return false; const b = await r.json(); token = b.accessToken;
+      // H5: the refresh response carries the user, so a new tab / reopened browser can rebuild the session from the cookie.
+      if (b.user && typeof window !== "undefined") sessionStorage.setItem("me", JSON.stringify(b.user)); return true }).catch(() => false)
     .finally(() => { refreshing = null });
   return refreshing;
 }
@@ -41,6 +43,8 @@ export const api = {
     const r = await req<{ accessToken: string; user: User }>("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }, false);
     token = r.accessToken; sessionStorage.setItem("me", JSON.stringify(r.user)); return r.user; },
   me(): User | null { if (typeof window === "undefined") return null; const s = sessionStorage.getItem("me"); return s ? JSON.parse(s) : null },
+  /** H5: user from this tab, or restored from the httpOnly refresh cookie (tab closed and reopened). null = really signed out. */
+  async restore(): Promise<User | null> { const m = this.me(); if (m || typeof window === "undefined") return m; return (await refresh()) ? this.me() : null },
   async logout() { await req("/auth/logout", { method: "POST" }, false).catch(() => {}); token = null; sessionStorage.removeItem("me") },
   async changePassword(currentPassword: string, newPassword: string) {
     await req("/auth/change-password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) });
