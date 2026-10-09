@@ -4,6 +4,7 @@ import { api } from "@/lib/api"; import { APP_NAME, useSchool } from "@/lib/scho
 const NAV: { href: string; label: string; icon: string; roles: Role[] }[] = [
   { href: "/today", label: "Bé hôm nay", icon: "🌞", roles: ["parent"] },
   { href: "/dashboard", label: "Tổng quan", icon: "🏠", roles: ["admin", "accountant"] },
+  { href: "/home", label: "Trang đầu", icon: "🏠", roles: ["teacher"] },
   { href: "/children", label: "Hồ sơ trẻ", icon: "🧒", roles: ["admin", "teacher", "accountant", "parent"] },
   { href: "/attendance", label: "Điểm danh", icon: "✅", roles: ["admin", "teacher"] },
   { href: "/pickups", label: "Đón bé", icon: "🚸", roles: ["admin", "teacher", "parent"] },
@@ -29,7 +30,7 @@ const NAV: { href: string; label: string; icon: string; roles: Role[] }[] = [
 /** Tab dưới cùng trên mobile cho nhân viên (tối đa 4 + "Thêm"). Phụ huynh dùng <ParentNav> (U7: đúng 5 mục, không có "Thêm"). */
 const MOBILE_TABS: Record<Role, string[]> = {
   parent: [],
-  teacher: ["/attendance", "/notes", "/pickups", "/notifications"],
+  teacher: ["/home", "/attendance", "/pickups", "/notifications"],
   admin: ["/dashboard", "/attendance", "/pickups", "/notifications"],
   accountant: ["/dashboard", "/fees", "/reports", "/notifications"],
 };

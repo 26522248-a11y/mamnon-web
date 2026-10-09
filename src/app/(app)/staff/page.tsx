@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, http, todayStr } from "@/lib/api";
 import { DateField } from "@/components/DateField";
-import { assignSubstitute, AttDay, checkIn, checkOut, getMyToday, getStaffWeek, mondayOf, MyToday, requestLeave, ST_UI, StaffWeek, Substitution } from "@/lib/staff-api";
+import { assignSubstitute, AttDay, shiftLabel, checkIn, checkOut, getMyToday, getStaffWeek, mondayOf, MyToday, requestLeave, ST_UI, StaffWeek, Substitution } from "@/lib/staff-api";
 
 const errMsg = (e: unknown) => (e as { message?: string })?.message || "Có lỗi, thử lại";
 const shiftWeek = (d: string, n: number) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + 7 * n); return x.toISOString().slice(0, 10) };
@@ -104,7 +104,7 @@ function TeacherView() {
   const inShift = !!m.checkIn && !m.checkOut;
   return <div className="mx-auto max-w-md space-y-3" data-testid="staff-teacher">
     <h1 className="text-2xl font-bold">Chấm công hôm nay</h1>
-    <div className="card text-center"><p className="text-xs text-ink-500">{m.shift}{m.start && ` ${m.start}–${m.end}`}</p><p className="mt-2 text-4xl font-bold tabular-nums">{now}</p>
+    <div className="card text-center"><p className="text-xs text-ink-500">{shiftLabel(m.shift)}{m.start && ` ${m.start}–${m.end}`}</p><p className="mt-2 text-4xl font-bold tabular-nums">{now}</p>
       {m.checkOut ? <p className="mt-3 rounded-xl bg-mint-50 p-3 text-sm text-mint-700">✓ Đã ra ca lúc {m.checkOut}</p>
         : <button className="btn mt-3 w-full !min-h-14 text-base" disabled={busy} onClick={() => punch(inShift)} data-testid="btn-checkin">{inShift ? "Ra ca" : "✓ Vào ca"}</button>}
       <p className="mt-2 text-xs text-ink-500">{m.checkIn ? `Vào ca lúc ${m.checkIn}` : "Chưa vào ca"}{m.inSchool ? " · 📍 Đang ở trong trường" : ""}</p>

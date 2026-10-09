@@ -3,7 +3,7 @@ import { useState } from "react"; import { useRouter } from "next/navigation"; i
 export default function Login() {
   const r = useRouter(); const [u, setU] = useState(""); const [p, setP] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false); const school = useSchool();
   async function submit(e: React.FormEvent) { e.preventDefault(); setBusy(true); setErr("");
-    try { const me = await api.login(u, p); r.push(me.mustChangePassword ? "/change-password" : me.role === "teacher" ? "/attendance" : me.role === "parent" ? "/today" : "/dashboard") } catch (x) { setErr((x as Error).message) } finally { setBusy(false) } }
+    try { const me = await api.login(u, p); r.push(me.mustChangePassword ? "/change-password" : me.role === "teacher" ? "/home" : me.role === "parent" ? "/today" : "/dashboard") } catch (x) { setErr((x as Error).message) } finally { setBusy(false) } }
   return <main className="flex min-h-screen items-center justify-center p-4">
     <form onSubmit={submit} className="card w-full max-w-sm space-y-4">
       <div className="text-center"><div className="text-5xl">🌱</div><h1 className="mt-2 text-2xl font-bold text-mint-700" data-testid="school-name">{school?.name || APP_NAME}</h1><p className="text-sm text-ink-500">Đăng nhập hệ thống quản lý</p></div>
