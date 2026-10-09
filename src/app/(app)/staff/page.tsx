@@ -26,6 +26,9 @@ function AdminView() {
   if (err && !w) return <p className="text-rose-500" role="alert">{err}</p>;
   if (!w) return <p className="text-ink-500">Đang tải…</p>;
   const s = w.summary;
+  const open = w.subs.filter(x => !x.substitute);
+  const nCls = new Set(open.map(x => x.classId ?? x.className)).size, nDays = new Set(open.map(x => x.date)).size;
+  const needLabel = open.length ? <>{nCls} lớp{(nDays > 1 || nCls > 1) && <span className="whitespace-nowrap text-base font-semibold"> · {nDays} ngày</span>}</> : <>{s.needSub} lớp</>;
   return <div className="mx-auto max-w-5xl space-y-4" data-testid="staff-admin">
     <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs text-ink-500">BGH · Nhân sự</p><h1 className="text-2xl font-bold">Chấm công & ca làm <span className="block text-sm font-semibold text-ink-500 sm:inline sm:text-lg"><span className="hidden sm:inline">· </span>
         <button aria-label="Tuần trước" className="px-1" onClick={() => setWk(shiftWeek(wk, -1))}>‹</button>{dm(w.from)}–{dm(w.to)}<button aria-label="Tuần sau" className="px-1" onClick={() => setWk(shiftWeek(wk, 1))}>›</button></span></h1></div>
@@ -36,7 +39,7 @@ function AdminView() {
       <div className="rounded-2xl bg-mint-50 p-3"><p className="text-xs text-mint-700">Có mặt hôm nay</p><b className="text-2xl text-mint-700 tabular-nums">{s.present}/{s.total}</b></div>
       <div className="rounded-2xl bg-sun-100 p-3"><p className="text-xs">Đi muộn tuần</p><b className="text-2xl tabular-nums">{s.lateWeek}</b></div>
       <div className="rounded-2xl bg-sky-100 p-3"><p className="text-xs text-sky-500">Nghỉ phép</p><b className="text-2xl text-sky-500 tabular-nums">{s.onLeave}</b></div>
-      <div className="rounded-2xl bg-peach-100 p-3"><p className="text-xs text-peach-500">Cần trông thay</p><b className="text-2xl text-peach-500">{s.needSub} lớp</b></div></div>
+      <div className="rounded-2xl bg-peach-100 p-3"><p className="text-xs text-peach-500">Cần trông thay</p><b className="block text-2xl text-peach-500" data-testid="need-sub">{needLabel}</b></div></div>
     {w.subs.filter(x => !x.substitute).map(x => <SubAlert key={x.date + x.className + x.shiftId} x={x} onDone={(t) => { setMsg(t); load() }} onErr={setErr} />)}
     <div className="card hidden sm:block"><table className="w-full text-sm"><thead className="text-left text-xs text-ink-500"><tr><th className="py-2">Giáo viên</th>{WD.map(d => <th key={d}>{d}</th>)}<th>Công</th></tr></thead>
       <tbody className="divide-y divide-ink-100">{w.rows.map(r => <tr key={r.id} className={r.leaveDays ? "bg-peach-50" : ""}><td className="py-3"><b>{r.name}</b><br /><span className="text-xs text-ink-500">{r.className} · {r.shift}</span></td>
