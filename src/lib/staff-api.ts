@@ -9,7 +9,7 @@ export type Suggestion = { userId: string; name: string; freeNote: string };
 export type Substitution = { date: string; className: string; absent: string; reason: string; kids: number; substitute?: string; suggestions: string[];
   /** ids needed to assign (POST /staff/substitutions) */
   shiftId?: string; classId?: string; absentUserId?: string; suggestionList?: Suggestion[] };
-export type StaffWeek = { from: string; to: string; summary: { present: number; total: number; lateWeek: number; onLeave: number; needSub: number }; rows: StaffRow[]; subs: Substitution[] };
+export type StaffWeek = { from: string; to: string; summary: { present: number; total: number; lateWeek: number; onLeave: number; needSub: number; /** H6: classes already covered this week */ covered: number }; rows: StaffRow[]; subs: Substitution[] };
 export type MyToday = { date: string; shift: string; start: string; end: string; checkIn?: string; checkOut?: string; inSchool: boolean; sub?: { className: string; absent: string; reason: string }; week: AttDay[] };
 
 type ApiStatus = "full" | "late" | "leave" | "absent" | "substitute" | "pending" | "off";
@@ -19,7 +19,7 @@ type ApiDay = { date: string; status: ApiStatus; checkInAt: string | null; check
   leaveType?: "sick" | "annual" | "personal" | null; leaveSession?: "full" | "morning" | "afternoon" | null; leaveDays?: number };
 type ApiAttendance = { from: string; to: string; dates: string[];
   items: { user: { id: string; name: string }; days: ApiDay[]; totals: { workDays: number; leave: number } }[];
-  summary: { present: number; totalStaff: number; leave: number; needSubstitute: number; range: { late: number } } };
+  summary: { present: number; totalStaff: number; leave: number; needSubstitute: number; range: { late: number; leave?: number } } };
 type ApiNeed = { date: string; shift: ApiShift; class: { id: string; name: string | null; children: number }; absentTeachers: { id: string; name: string | null; reason: "leave" | "absent" }[]; suggestions: Suggestion[] };
 type ApiToday = { date: string; shifts: ApiShift[]; checkInAt: string | null; checkOutAt: string | null; status: ApiStatus;
   substitutions: { role: "covering" | "covered"; class: { name: string | null } | null; absentTeacher: { name: string | null } | null; reason: string | null }[];
@@ -30,7 +30,8 @@ const hm = (iso?: string | null) => iso ? new Date(iso).toLocaleTimeString("en-G
 const addDays = (d: string, n: number) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10) };
 /** Monday of the week containing d */
 export const mondayOf = (d: string) => { const wd = new Date(d + "T00:00:00Z").getUTCDay() || 7; return addDays(d, 1 - wd) };
-const toDay = (d: ApiDay): AttDay => ({ date: d.date, status: ST[d.status], checkIn: hm(d.checkInAt), checkOut: hm(d.checkOutAt), subClass: d.substituteFor?.[0]?.className ?? undefined,
+/** H6: a planned substitution (future day, not yet checked in) still shows "↔ Trông thay <lớp>". */
+const toDay = (d: ApiDay): AttDay => ({ date: d.date, status: d.substituteFor?.length && (d.status === "pending" || d.status === "off" || d.status === "full" || d.status === "late") ? "sub" : ST[d.status], checkIn: hm(d.checkInAt), checkOut: hm(d.checkOutAt), subClass: d.substituteFor?.[0]?.className ?? undefined,
   leaveType: d.leaveType ?? undefined, half: d.leaveDays === 0.5 });
 const uniq = (xs: (string | null | undefined)[]) => Array.from(new Set(xs.filter(Boolean) as string[]));
 const REASON = { leave: "nghỉ phép", absent: "vắng" } as const;
@@ -38,7 +39,8 @@ const REASON = { leave: "nghỉ phép", absent: "vắng" } as const;
 /** Tuần T2–T6 chứa `from` (mặc định tuần này). */
 export async function getStaffWeek(from?: string): Promise<StaffWeek> {
   const mon = mondayOf(from || todayStr()), fri = addDays(mon, 4);
-  const [a, n] = await Promise.all([http.get<ApiAttendance>(`/staff/attendance?from=${mon}&to=${fri}`), http.get<{ items: ApiNeed[] }>(`/staff/substitutions/needs?from=${mon}&to=${fri}`)]);
+  const [a, n, cov] = await Promise.all([http.get<ApiAttendance>(`/staff/attendance?from=${mon}&to=${fri}`), http.get<{ items: ApiNeed[] }>(`/staff/substitutions/needs?from=${mon}&to=${fri}`),
+    http.get<{ items: unknown[] }>(`/staff/substitutions?from=${mon}&to=${fri}`).catch(() => ({ items: [] }))]);
   const rows: StaffRow[] = a.items.filter(r => r.days.some(d => d.status !== "off") || r.totals.workDays > 0).map(r => ({
     id: r.user.id, name: r.user.name,
     className: uniq(r.days.flatMap(d => d.classes?.map(c => c.name) ?? [])).join(", ") || "—",
@@ -50,7 +52,8 @@ export async function getStaffWeek(from?: string): Promise<StaffWeek> {
     suggestions: x.suggestions.map(s => `${s.name} (${s.freeNote.toLowerCase()})`), suggestionList: x.suggestions,
     shiftId: x.shift?.id, classId: x.class.id, absentUserId: x.absentTeachers[0]?.id }));
   const s = a.summary;
-  return { from: mon, to: fri, rows, subs, summary: { present: s.present, total: s.totalStaff, lateWeek: s.range.late, onLeave: s.leave, needSub: s.needSubstitute } };
+  return { from: mon, to: fri, rows, subs, // H6: week view → leave days over the week (½ counted), uncovered classes over the week (not just the summary day)
+    summary: { present: s.present, total: s.totalStaff, lateWeek: s.range.late, onLeave: s.range.leave ?? rows.reduce((t, r) => t + r.leaveDays, 0), needSub: subs.filter(x => !x.substitute).length, covered: cov.items.length } };
 }
 
 function toMy(t: ApiToday): MyToday {
