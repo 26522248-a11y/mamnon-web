@@ -24,8 +24,9 @@ function After({ i }: { i: SensitiveItem }) {
 }
 
 function Actor({ i }: { i: SensitiveItem }) {
-  const who = i.actor.username ?? i.actor.name ?? "Hệ thống";
-  return <>{who}{i.actor.self && " (tự sửa)"}</>;
+  // A3: display name (Cô Lan, Hiệu trưởng…), username only as hover hint / fallback
+  const who = i.actor.name || i.actor.username || "Hệ thống";
+  return <span title={i.actor.username ?? undefined}>{who}{i.actor.self && " (tự sửa)"}</span>;
 }
 
 export default function SensitiveChangesPage() {
