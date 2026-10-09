@@ -14,6 +14,15 @@ const hm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2
 const dm = (iso: string) => { const [, m, d] = vnDay(iso).split("-"); return `${d}/${m}` };
 const EMPTY = "Chưa có thay đổi nào trong khoảng này";
 
+/** "after" side: for phone rows, each number with a sky "đã đổi" marker when it is new; else the plain text. */
+function After({ i }: { i: SensitiveItem }) {
+  const ph = i.afterPhones?.filter(p => p.value);
+  if (!ph?.length) return <b>{i.afterText}</b>;
+  return <>{ph.map((p, n) => <span key={p.slot} className="whitespace-nowrap">{n > 0 && " / "}<b>{p.value}</b>
+    {p.changed && <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-sky-100 px-1.5 align-middle text-[11px] font-semibold text-sky-500" data-testid="sc-changed">
+      <span className="h-1.5 w-1.5 rounded-full bg-sky-500" aria-hidden />đã đổi</span>}</span>)}</>;
+}
+
 function Actor({ i }: { i: SensitiveItem }) {
   const who = i.actor.username ?? i.actor.name ?? "Hệ thống";
   return <>{who}{i.actor.self && " (tự sửa)"}</>;
@@ -76,7 +85,7 @@ export default function SensitiveChangesPage() {
             <td className="whitespace-nowrap py-3 pr-2">{dm(i.createdAt)} {hm(i.createdAt)}</td>
             <td className="py-3 pr-2"><span className={`whitespace-nowrap rounded-full px-2 py-1 text-xs ${ui.pill}`}>{ui.icon} {ui.chip}</span></td>
             <td className="py-3 pr-2">{i.target.label ?? "—"}</td>
-            <td className="py-3 pr-2">{i.beforeText} → <b>{i.afterText}</b>{i.reason && <p className="mt-1 text-xs text-ink-500">Lý do: {i.reason}</p>}</td>
+            <td className="py-3 pr-2">{i.beforeText} → <After i={i} />{i.reason && <p className="mt-1 text-xs text-ink-500">Lý do: {i.reason}</p>}</td>
             <td className="py-3"><Actor i={i} />{maskIp(i.ip) && <><br /><span className="text-xs text-ink-500">IP {maskIp(i.ip)}</span></>}</td></tr> })}</tbody></table>
       </div>
       {/* mobile 390px: cards by day, coloured left border */}
@@ -85,7 +94,7 @@ export default function SensitiveChangesPage() {
         {g.items.map(i => { const ui = TYPE_UI[i.type]; return <div key={i.id} className={`min-w-0 rounded-2xl border-l-4 bg-white p-3 text-sm shadow-card ${ui.border}`} data-testid="sc-card">
           <div className="flex justify-between gap-2"><b className="min-w-0">{ui.icon} {ui.long}</b><span className="shrink-0 text-xs text-ink-500">{hm(i.createdAt)}</span></div>
           <p className="mt-1 break-words">{i.target.label ?? "—"}</p>
-          <p className="mt-1 break-words text-xs"><s className="text-ink-500">{i.beforeText}</s> → <b>{i.afterText}</b></p>
+          <p className="mt-1 break-words text-xs"><s className="text-ink-500">{i.beforeText}</s> → <After i={i} /></p>
           {i.reason && <p className="mt-1 break-words text-xs text-ink-500">Lý do: {i.reason}</p>}
           <p className="mt-1 text-xs text-ink-500">bởi <Actor i={i} /></p></div> })}</div>)}</div>
       <p className="text-xs text-ink-500">🔒 SĐT được che giữa. Chỉ xem, không sửa / xoá được. Hiển thị {rows.length}/{total}.</p>

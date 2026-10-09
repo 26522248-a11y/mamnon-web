@@ -9,6 +9,8 @@ export type SensitiveItem = {
   id: string; createdAt: string; type: SensitiveType; typeLabel: string; action: string;
   target: { entity: string; id: string | null; label: string | null; childId: string | null; childName: string | null };
   before: Record<string, unknown> | null; after: Record<string, unknown> | null; beforeText: string; afterText: string; reason: string | null;
+  /** phone rows only: masked numbers in `after`, `changed` computed server-side on raw values */
+  afterPhones?: { slot: string; value: string | null; changed: boolean }[] | null;
   actor: { id: string | null; name: string | null; username: string | null; role: string | null; self: boolean }; ip: string | null;
 };
 export type SensitiveCounts = { all: number } & Record<SensitiveType, number>;

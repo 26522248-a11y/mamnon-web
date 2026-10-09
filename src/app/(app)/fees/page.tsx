@@ -47,7 +47,7 @@ function StaffFees() {
       {genMsg.map((m, i) => <p key={i} className="text-sm" data-testid="gen-result">{m}</p>)}</div>}
     {err && <p className="text-rose-500">{err}</p>}
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{stats.map(s => <div key={s.l} className={`rounded-2xl p-4 ${s.c}`} data-testid={s.t}><div className="text-xs">{s.l}</div><div className="text-xl font-bold md:text-2xl">{s.v}</div>{s.sub && <div className="mt-0.5 text-xs text-ink-500">{s.sub}</div>}</div>)}</div>
-    <div className="flex gap-2"><button className={`btn ${tab === "debts" ? "" : "!bg-white !text-ink-700"}`} onClick={() => setTab("debts")} data-testid="tab-debts">Công nợ</button>
+    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [&>button]:shrink-0 [&>button]:whitespace-nowrap max-sm:[&>button]:px-3 max-sm:[&>button]:text-sm" data-testid="fees-tabs"><button className={`btn ${tab === "debts" ? "" : "!bg-white !text-ink-700"}`} onClick={() => setTab("debts")} data-testid="tab-debts">Công nợ</button>
       <button className={`btn ${tab === "invoices" ? "" : "!bg-white !text-ink-700"}`} onClick={() => setTab("invoices")} data-testid="tab-invoices">Hóa đơn theo tháng</button>
       <button className={`btn ${tab === "transfers" ? "" : "!bg-white !text-ink-700"}`} onClick={() => setTab("transfers")} data-testid="tab-transfers">Đối soát CK{ft && !ft.queue && <span className="ml-1 text-[10px] font-normal">Sắp có</span>}</button></div>
     {tab === "transfers" && (ft?.queue ? <TransferQueue onChanged={load} />
