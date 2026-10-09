@@ -142,7 +142,7 @@ function NewRequest({ attendanceId, init, onDone }: { attendanceId: string; init
     <input name="pickerName" className="input" placeholder="Họ tên người đón" required defaultValue={init.pickerName} maxLength={120} />
     <input name="pickerPhone" className="input" placeholder="Số điện thoại" inputMode="tel" required defaultValue={init.pickerPhone} />
     <input name="relation" className="input" placeholder="Quan hệ với bé (vd: Bác)" defaultValue={init.relation} maxLength={40} />
-    <input name="pickerIdNumber" className="input" placeholder="Số căn cước (12 số)" inputMode="numeric" pattern="\d{12}" maxLength={12} />
+    <input name="pickerIdNumber" className="input" placeholder="Số giấy tờ tùy thân (12 số)" inputMode="numeric" pattern="\d{12}" maxLength={12} />
     <textarea name="note" className="input" placeholder="Ai báo, báo lúc nào (bắt buộc)" required maxLength={500} />
     {err && <p className="text-sm text-rose-500">{err}</p>}
     <button className="btn min-h-12 w-full" disabled={busy}>{busy ? "Đang gửi…" : "Gửi phụ huynh xác nhận"}</button></form>;
