@@ -91,6 +91,8 @@ export async function softGet<T>(path: string): Promise<T | null> {
   const url = path.startsWith("http") || path.startsWith("/api/") ? path : BASE + path;
   const send = () => fetch(url, { credentials: "include", headers: token ? { authorization: "Bearer " + token } : {} });
   // Gọi trước khi gắn xong access token (vd. /pickup-duties/me lúc mở /pickups) → 401: làm mới token từ cookie rồi thử lại một lần.
+  // B28: like req(), get an access token from the refresh cookie first so the first call does not 401 at all
+  if (!token && typeof window !== "undefined") await refresh();
   try { let r = await send(); if (r.status === 401 && await refresh()) r = await send();
     return r.ok ? (await r.json()) as T : null } catch { return null } }
 export const API_ORIGIN = BASE.replace(/\/api\/v1$/, "");
