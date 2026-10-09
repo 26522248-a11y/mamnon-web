@@ -63,7 +63,7 @@ export default function Today() {
     {askAbs && <div className="fixed inset-0 z-40 flex items-end justify-center bg-ink-900/40 md:items-center" onClick={() => setAskAbs(false)}>
       <div role="dialog" aria-label="Báo nghỉ hôm nay" className="w-full max-w-md space-y-3 rounded-t-3xl bg-white p-5 pb-8 text-[17px] md:rounded-3xl" onClick={e => e.stopPropagation()} data-testid="absence-dialog">
         <b className="block text-lg">Báo bé {k.fullName.split(" ").pop()} nghỉ hôm nay?</b>
-        {here && <p className="rounded-xl bg-sun-100 p-2 text-sm" data-testid="absence-here-hint">Cô đã điểm danh bé có mặt. Nếu cần đón bé sớm, hãy nhắn cô ở mục “Nhắn cô”.</p>}
+        {here && <p className="rounded-xl bg-sun-100 p-2 text-sm" data-testid="absence-here-hint">Hôm nay bé đã đi học rồi. Nếu cần đón bé sớm, hãy nhắn cô ở mục “Nhắn cô”.</p>}
         <div className="text-sm text-ink-500">Lý do (tuỳ chọn)</div>
         <div className="flex flex-wrap gap-2">{ABSENCE_REASONS.map(([r, l]) => <button key={r} type="button" onClick={() => setAbsReason(absReason === r ? null : r)} className={`min-h-12 rounded-xl px-4 ${absReason === r ? "bg-sky-500 text-white" : "bg-ink-100"}`}>{l}</button>)}</div>
         <input className="input" placeholder="Ghi chú cho cô (tuỳ chọn)" value={absNote} onChange={e => setAbsNote(e.target.value)} maxLength={300} />

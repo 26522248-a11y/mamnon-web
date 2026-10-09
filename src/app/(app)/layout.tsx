@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link"; import { usePathname, useRouter } from "next/navigation"; import { useEffect, useState } from "react";
-import { api } from "@/lib/api"; import { APP_NAME, useSchool } from "@/lib/school"; import { Role, User } from "@/lib/types"; import ParentNav from "@/components/ParentNav";
+import { api } from "@/lib/api"; import { APP_NAME, useSchool } from "@/lib/school"; import { Role, User } from "@/lib/types"; import ParentNav, { PARENT_TABS, parentTabFor } from "@/components/ParentNav";
 const NAV: { href: string; label: string; icon: string; roles: Role[] }[] = [
   { href: "/today", label: "Bé hôm nay", icon: "🌞", roles: ["parent"] },
   { href: "/dashboard", label: "Tổng quan", icon: "🏠", roles: ["admin", "accountant"] },
@@ -46,7 +46,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return <div className={`md:flex ${me.role === "parent" ? "parent-ui" : ""}`}>
     <aside className="hidden print:!hidden md:flex md:min-h-screen md:w-60 md:flex-col md:bg-white md:p-4">
       <div className="mb-6 text-xl font-bold text-mint-700">🌱 {school?.name || APP_NAME}</div>
-      {nav.map(n => <Link key={n.href} href={n.href} className={`mb-1 rounded-2xl px-4 py-3 ${path.startsWith(n.href) ? "bg-mint-100 font-semibold text-mint-700" : "hover:bg-mint-50"}`}>{n.icon} {n.label}</Link>)}
+      {(me.role === "parent" ? PARENT_TABS.map(t => ({ href: t.href, icon: t.icon, label: t.label, on: parentTabFor(path) === t.href })) : nav.map(n => ({ ...n, on: path.startsWith(n.href) }))).map(n => <Link key={n.href} href={n.href} className={`mb-1 rounded-2xl px-4 py-3 ${n.on ? "bg-mint-100 font-semibold text-mint-700" : "hover:bg-mint-50"}`}>{n.icon} {n.label}</Link>)}
       <div className="mt-auto text-sm text-ink-500">{me.name}<button onClick={logout} className="mt-6 block min-h-11 w-full rounded-xl border border-rose-100 font-semibold text-rose-500">Đăng xuất</button></div>
     </aside>
     <main className="flex-1 p-4 pb-24 md:p-8">{children}</main>
