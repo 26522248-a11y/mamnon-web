@@ -116,8 +116,8 @@ export const BLOCKER_TEXT: Record<string, string> = {
 export const OUTCOME_TEXT: Record<CallOutcome, string> = {
   no_answer: "Không nghe máy", busy: "Máy bận", wrong_number: "Sai số", confirmed: "PH đồng ý qua ĐT", rejected: "PH không đồng ý", other: "Khác",
 };
-export const REJECT_PRESETS = ["Không khớp CCCD", "Ảnh không khớp người đến đón", "PH không đồng ý", "Không liên lạc được phụ huynh", "Khác"];
-export const DELEGATE_REJECT_PRESETS = ["Ảnh mờ, không rõ mặt", "Thiếu hoặc sai CCCD", "Phụ huynh không xác nhận", "Khác"];
+export const REJECT_PRESETS = ["Không khớp căn cước", "Ảnh không khớp người đến đón", "PH không đồng ý", "Không liên lạc được phụ huynh", "Khác"];
+export const DELEGATE_REJECT_PRESETS = ["Ảnh mờ, không rõ mặt", "Thiếu hoặc sai số căn cước", "Phụ huynh không xác nhận", "Khác"];
 
 // ── web push ──
 function b64ToU8(b64: string) { const s = (b64 + "=".repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"); const raw = atob(s); return Uint8Array.from(raw, (c) => c.charCodeAt(0)); }

@@ -4,3 +4,8 @@
 .btn { @apply min-h-12 rounded-xl bg-mint-500 px-4 py-3 text-[15px] font-semibold text-white active:scale-95 transition disabled:cursor-not-allowed disabled:bg-ink-100 disabled:text-ink-500 disabled:active:scale-100; }
 .card { @apply rounded-3xl bg-white p-4 shadow-card; }
 .input { @apply w-full rounded-2xl border border-ink-100 px-4 py-3 outline-none focus:ring-2 focus:ring-mint-300; }
+
+/* U8: phụ huynh – chữ tối thiểu 17px, chữ phụ 15px */
+.parent-ui main { font-size: 17px; }
+.parent-ui main .text-sm, .parent-ui main .text-xs, .parent-ui main [class*="text-[11px]"], .parent-ui main [class*="text-[13px]"] { font-size: 15px; line-height: 1.4; }
+.parent-ui main .input, .parent-ui main .btn { font-size: 17px; }

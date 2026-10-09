@@ -21,9 +21,9 @@ export default function ChildHealth() {
       <label className="text-sm">Cân nặng (kg)<input name="weightKg" className="input" inputMode="decimal" placeholder="16.2" data-testid="growth-weight" /></label><label className="text-sm">Chiều cao (cm)<input name="heightCm" className="input" inputMode="decimal" placeholder="102" data-testid="growth-height" /></label>
       <label className="col-span-2 text-sm sm:col-span-1">Ghi chú<input name="note" className="input" /></label><button className="btn col-span-2 sm:col-span-4" data-testid="btn-save-growth">Lưu số đo</button></form>}
     {msg && <p className="text-sm" data-testid="growth-msg">{msg}</p>}
-    <div className="grid grid-cols-3 gap-3"><div className="rounded-2xl bg-mint-50 p-3"><div className="text-xs">Cân nặng</div><b className="text-xl">{last?.weightKg ?? "–"}kg</b></div>
-      <div className="rounded-2xl bg-sky-100 p-3"><div className="text-xs">Chiều cao</div><b className="text-xl">{last?.heightCm ?? "–"}cm</b></div>
-      <div className="rounded-2xl bg-sun-100 p-3"><div className="text-xs">BMI</div><b className="text-xl" data-testid="bmi">{last?.bmi ?? "–"}</b> <span className={`text-xs font-semibold ${bc}`}>{bl}</span></div></div>
+    <div className="grid grid-cols-3 gap-3"><div className="rounded-2xl bg-mint-50 p-3"><div className="text-xs">Cân nặng</div><b className="text-xl">{last?.weightKg != null ? `${last.weightKg}kg` : "Chưa cân"}</b></div>
+      <div className="rounded-2xl bg-sky-100 p-3"><div className="text-xs">Chiều cao</div><b className="text-xl">{last?.heightCm != null ? `${last.heightCm}cm` : "Chưa đo"}</b></div>
+      <div className="rounded-2xl bg-sun-100 p-3"><div className="text-xs">BMI</div><b className="text-xl" data-testid="bmi">{last?.bmi ?? "Chưa có"}</b> <span className={`text-xs font-semibold ${bc}`}>{bl}</span></div></div>
     <div className="card"><div className="mb-2 flex items-center justify-between"><h2 className="font-semibold">Biểu đồ tăng trưởng</h2><div className="flex gap-3 text-xs"><span className="text-peach-600">● Cân nặng</span><span className="text-sky-500">┅ Chiều cao</span></div></div><GrowthChart data={g} />
       <p className="mt-1 text-xs text-ink-500">Phân loại BMI chỉ mang tính tham khảo cho trẻ 3–6 tuổi.</p></div>
     {c.healthNotes && <div className="card text-sm"><b>Ghi chú sức khỏe:</b> {c.healthNotes}</div>}

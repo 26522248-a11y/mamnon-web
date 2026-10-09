@@ -19,7 +19,7 @@ function Row({ d, onChange }: { d: Delegate; onChange: () => void }) {
   return <div className="space-y-2 rounded-2xl border-2 border-sun-500 p-3" data-testid="delegate-pending">
     <div className="flex gap-3"><PersonPhoto url={d.photoUrl} alt={d.fullName} className="h-24 w-20 shrink-0" />
       <div className="text-sm"><b className="text-base">{d.fullName}</b>{d.relation && ` (${d.relation})`}<div>đón hộ bé <b>{d.childName}</b></div>
-        <div className="text-ink-500">CCCD {idLast4(d.idNumberMasked)}</div><div className="text-ink-500">① {d.phone1}{d.phone2 && ` · ② ${d.phone2}`}</div>
+        <div className="text-ink-500">Căn cước {idLast4(d.idNumberMasked)}</div><div className="text-ink-500">① {d.phone1}{d.phone2 && ` · ② ${d.phone2}`}</div>
         <div className="text-xs text-ink-500">{d.createdByName} gửi {hhmm(d.createdAt)} {fmtDate(d.createdAt)}</div></div></div>
     {err && <p className="text-sm text-rose-500">{err}</p>}
     {rej ? <ReasonBox presets={DELEGATE_REJECT_PRESETS} busy={busy} onCancel={() => setRej(false)} onSubmit={n => run(() => rejectDelegate(d.id, n))} />

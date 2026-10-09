@@ -25,7 +25,7 @@ function BoardCard({ r, isAdmin, onChange }: { r: PickupRequest; isAdmin: boolea
   return <div className={`space-y-2 rounded-2xl border-2 p-3 ${urgent ? "border-rose-500" : "border-ink-100"}`} data-testid="board-card" data-req={r.id}>
     <div className="flex gap-3"><PersonPhoto url={r.photoUrl} alt={r.pickerName} className="h-20 w-20 shrink-0" />
       <div className="min-w-0 text-sm"><b className="text-base">{r.pickerName}</b>{r.relation && ` (${r.relation})`}
-        <div>đón <b>{r.childName ?? ""}</b>{r.className && <span data-testid="board-class"> ({r.className})</span>} · {hhmm(r.createdAt)}</div><div className="text-ink-500">CCCD {idLast4(r.pickerIdNumberMasked)} · {r.pickerPhone}</div>
+        <div>đón <b>{r.childName ?? ""}</b>{r.className && <span data-testid="board-class"> ({r.className})</span>} · {hhmm(r.createdAt)}</div><div className="text-ink-500">Căn cước {idLast4(r.pickerIdNumberMasked)} · {r.pickerPhone}</div>
         <div data-testid="board-parent" className={parentOk ? "text-mint-700" : r.parent.status === "rejected" ? "text-rose-500" : "text-ink-900"}>
           {parentOk ? `✓ ${r.parent.decidedByName ?? "Phụ huynh"} đã xác nhận${r.parent.channel === "on_behalf" ? " (qua ĐT)" : ""}`
             : r.parent.status === "rejected" ? "⛔ Phụ huynh từ chối" : `⏳ Chờ phụ huynh · ${left > 0 ? mmss(left) : "quá 15 phút"}`}</div>

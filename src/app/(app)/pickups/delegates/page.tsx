@@ -26,15 +26,15 @@ export default function Delegates() {
     {kids.length > 1 && <div className="flex gap-2">{kids.map((x, j) => <button key={x.id} onClick={() => { setI(j); setAdding(false) }} className={`min-h-12 rounded-xl px-4 ${j === i ? "bg-mint-500 text-white" : "bg-white"}`}>{x.fullName.split(" ").pop()}</button>)}</div>}
     {!p ? <p>Đang tải…</p> : <>
       {parents.map(g => <div key={g.id} className="card flex items-center gap-3" data-testid="guardian-row"><span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-peach-100 text-2xl">👤</span>
-        <div className="flex-1"><b>{g.relation} · {g.fullName}</b><div className="text-sm text-ink-500">CCCD {idLast4(g.idNumberMasked)}</div></div>
+        <div className="flex-1"><b>{g.relation} · {g.fullName}</b><div className="text-sm text-ink-500">Căn cước {idLast4(g.idNumberMasked)}</div></div>
         <span className="rounded-full bg-mint-100 px-3 py-1 text-xs font-semibold text-mint-700">Bố mẹ / giám hộ</span></div>)}
       {p.authorizedPickers.map(d => { const [cls, label] = CHIP[d.status] ?? CHIP.pending;
         return <div key={d.id} className="card space-y-2" data-testid="delegate-row" data-status={d.status}><div className="flex items-center gap-3">
           <PersonPhoto url={d.photoUrl} alt={d.fullName} className="h-16 w-16 shrink-0" />
-          <div className="min-w-0 flex-1"><b>{d.relation ? `${d.relation} · ` : ""}{d.fullName}</b><div className="text-sm text-ink-500">CCCD {idLast4(d.idNumberMasked)}</div>
+          <div className="min-w-0 flex-1"><b>{d.relation ? `${d.relation} · ` : ""}{d.fullName}</b><div className="text-sm text-ink-500">Căn cước {idLast4(d.idNumberMasked)}</div>
             <div className="text-sm text-ink-500">① {d.phone1}{d.phone2 && <> · ② {d.phone2}</>}</div></div>
           <span className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${cls}`} data-testid="delegate-status">{label}</span></div>
-          {d.status === "pending" && <p className="text-xs text-ink-500">Chưa có hiệu lực: nhà trường duyệt xong thì người này mới đón bé được (cô giáo đối chiếu ảnh + CCCD).</p>}
+          {d.status === "pending" && <p className="text-xs text-ink-500">Chưa có hiệu lực: nhà trường duyệt xong thì người này mới đón bé được (cô giáo đối chiếu ảnh và căn cước).</p>}
           {d.status === "rejected" && d.decisionNote && <p className="text-sm text-rose-500">Lý do: {d.decisionNote}</p>}
           <button className="min-h-12 text-sm text-rose-500 underline" onClick={() => del(d)} data-testid="delegate-remove">Xoá người này</button></div> })}
       {adding ? <AddForm childId={k.id} onDone={(name) => { setAdding(false); setMsg(`Đã gửi ${name}, chờ nhà trường duyệt`); load() }} onCancel={() => setAdding(false)} />
@@ -53,7 +53,7 @@ function AddForm({ childId, onDone, onCancel }: { childId: string; onDone: (name
     if (!isAllowedPhoto(raw)) return setErr("Ảnh phải là JPG, PNG hoặc HEIC");
     const photo = await shrinkImage(raw); // HEIC the browser can't decode → sent as-is
     if (photo.size > PHOTO_MAX_BYTES && !isHeic(photo)) return setErr("Ảnh tối đa 3MB, vui lòng chụp lại"); f.set("photo", photo);
-    const id = String(f.get("idNumber") ?? "").replace(/\s/g, ""); if (!/^\d{12}$/.test(id)) return setErr("Số CCCD phải đúng 12 chữ số"); f.set("idNumber", id);
+    const id = String(f.get("idNumber") ?? "").replace(/\s/g, ""); if (!/^\d{12}$/.test(id)) return setErr("Số căn cước phải đúng 12 chữ số"); f.set("idNumber", id);
     if (!String(f.get("phone2") ?? "").trim()) f.delete("phone2");
     setBusy(true);
     try { const d = await addDelegate(childId, f); onDone(d.fullName) }
@@ -66,10 +66,10 @@ function AddForm({ childId, onDone, onCancel }: { childId: string; onDone: (name
         onChange={e => { const file = e.target.files?.[0]; setPreview(file ? URL.createObjectURL(file) : null) }} /></label>
     <input name="fullName" className="input" placeholder="Họ tên" required maxLength={120} data-testid="delegate-name" />
     <input name="relation" className="input" placeholder="Quan hệ với bé (vd: Bà ngoại)" required maxLength={40} data-testid="delegate-relation" />
-    <input name="idNumber" className="input" placeholder="Số CCCD (12 số)" inputMode="numeric" pattern="\d{12}" maxLength={12} required data-testid="delegate-cccd" />
+    <input name="idNumber" className="input" placeholder="Số căn cước (12 số)" inputMode="numeric" pattern="\d{12}" maxLength={12} required data-testid="delegate-cccd" />
     <input name="phone1" className="input" placeholder="📞 Số điện thoại ①" inputMode="tel" required data-testid="delegate-phone1" />
     <input name="phone2" className="input" placeholder="📞 Số điện thoại ② (nếu có)" inputMode="tel" data-testid="delegate-phone2" />
-    <p className="text-xs text-ink-500">CCCD chỉ hiển thị 4 số cuối. Người mới thêm phải được nhà trường duyệt mới có hiệu lực.</p>
+    <p className="text-xs text-ink-500">Số căn cước chỉ hiện 4 số cuối. Người mới thêm phải được nhà trường duyệt mới có hiệu lực.</p>
     {err && <p className="text-sm text-rose-500" data-testid="delegate-error">{err}</p>}
     <div className="flex gap-2"><button className="btn min-h-12 flex-1" disabled={busy} data-testid="delegate-submit">{busy ? "Đang gửi…" : "Gửi nhà trường duyệt"}</button>
       <button type="button" className="btn min-h-12 flex-1 !bg-ink-300" onClick={onCancel}>Hủy</button></div></form>;
