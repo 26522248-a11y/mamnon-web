@@ -2,7 +2,8 @@
 import { http, todayStr } from "./api";
 
 export type AttStatus = "ok" | "late" | "leave" | "absent" | "sub" | "none";
-export type AttDay = { date: string; checkIn?: string; checkOut?: string; status: AttStatus; subClass?: string };
+export type AttDay = { date: string; checkIn?: string; checkOut?: string; status: AttStatus; subClass?: string;
+  /** G6: loại nghỉ + nửa ngày (½ công) */ leaveType?: "sick" | "annual" | "personal"; half?: boolean };
 export type StaffRow = { id: string; name: string; className: string; shift: string; days: AttDay[]; workDays: number; leaveDays: number };
 export type Suggestion = { userId: string; name: string; freeNote: string };
 export type Substitution = { date: string; className: string; absent: string; reason: string; kids: number; substitute?: string; suggestions: string[];
@@ -14,7 +15,8 @@ export type MyToday = { date: string; shift: string; start: string; end: string;
 type ApiStatus = "full" | "late" | "leave" | "absent" | "substitute" | "pending" | "off";
 type ApiShift = { id: string; name: string; startTime: string; endTime: string } | null;
 type ApiDay = { date: string; status: ApiStatus; checkInAt: string | null; checkOutAt?: string | null; shifts?: ApiShift[]; classes?: { id: string; name: string | null }[];
-  substituteFor?: { className: string | null; absentUser: { name: string | null } | null }[] };
+  substituteFor?: { className: string | null; absentUser: { name: string | null } | null }[];
+  leaveType?: "sick" | "annual" | "personal" | null; leaveSession?: "full" | "morning" | "afternoon" | null; leaveDays?: number };
 type ApiAttendance = { from: string; to: string; dates: string[];
   items: { user: { id: string; name: string }; days: ApiDay[]; totals: { workDays: number; leave: number } }[];
   summary: { present: number; totalStaff: number; leave: number; needSubstitute: number; range: { late: number } } };
@@ -28,7 +30,8 @@ const hm = (iso?: string | null) => iso ? new Date(iso).toLocaleTimeString("en-G
 const addDays = (d: string, n: number) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10) };
 /** Monday of the week containing d */
 export const mondayOf = (d: string) => { const wd = new Date(d + "T00:00:00Z").getUTCDay() || 7; return addDays(d, 1 - wd) };
-const toDay = (d: ApiDay): AttDay => ({ date: d.date, status: ST[d.status], checkIn: hm(d.checkInAt), checkOut: hm(d.checkOutAt), subClass: d.substituteFor?.[0]?.className ?? undefined });
+const toDay = (d: ApiDay): AttDay => ({ date: d.date, status: ST[d.status], checkIn: hm(d.checkInAt), checkOut: hm(d.checkOutAt), subClass: d.substituteFor?.[0]?.className ?? undefined,
+  leaveType: d.leaveType ?? undefined, half: d.leaveDays === 0.5 });
 const uniq = (xs: (string | null | undefined)[]) => Array.from(new Set(xs.filter(Boolean) as string[]));
 const REASON = { leave: "nghỉ phép", absent: "vắng" } as const;
 

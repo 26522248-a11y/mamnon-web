@@ -5,7 +5,7 @@ import { api, http, todayStr } from "@/lib/api"; import { Child } from "@/lib/ty
 import { actionLabel, AuditEvent, auditActions, fieldLabel, fieldValue, hiddenField, listAudit } from "@/lib/audit-api"; import { fmtDateTime } from "@/lib/date";
 
 type U = { id: string; name: string; role: string };
-const ROLE: Record<string, string> = { admin: "BGH", teacher: "GV", accountant: "KT", parent: "PH" };
+const ROLE: Record<string, string> = { admin: "Ban giám hiệu", teacher: "GV", accountant: "KT", parent: "PH" };
 const LIMIT = 30;
 const addDays = (d: string, n: number) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return x.toLocaleDateString("sv-SE") };
 

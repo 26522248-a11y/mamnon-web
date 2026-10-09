@@ -3,20 +3,26 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, http, todayStr } from "@/lib/api";
 import { DateField } from "@/components/DateField";
-import { assignSubstitute, AttDay, shiftLabel, checkIn, checkOut, getMyToday, getStaffWeek, mondayOf, MyToday, requestLeave, ST_UI, StaffWeek, Substitution } from "@/lib/staff-api";
+import { TYPE_UI, myLeaves, Leave, leaveWhen, STATUS_UI } from "@/lib/leave-api";
+import LeaveForm from "@/components/LeaveForm";
+import Link from "next/link";
+import { assignSubstitute, AttDay, shiftLabel, checkIn, checkOut, getMyToday, getStaffWeek, mondayOf, MyToday, ST_UI, StaffWeek, Substitution } from "@/lib/staff-api";
 
 const errMsg = (e: unknown) => (e as { message?: string })?.message || "Có lỗi, thử lại";
 const shiftWeek = (d: string, n: number) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + 7 * n); return x.toISOString().slice(0, 10) };
 
 const WD = ["T2", "T3", "T4", "T5", "T6"];
 const dm = (d: string) => d.slice(8, 10) + "/" + d.slice(5, 7);
-const Cell = ({ d }: { d: AttDay }) => { const u = ST_UI[d.status];
+const Cell = ({ d }: { d: AttDay }) => { const u = ST_UI[d.status], t = d.leaveType ? TYPE_UI[d.leaveType] : null;
+  if (t && (d.status === "leave" || d.half)) return <span className={`inline-block whitespace-nowrap rounded-lg px-2 py-1 text-xs tabular-nums ${t.cls}`} title={t.label} data-testid="cell-leave">
+    {d.half ? "½ " : ""}{t.icon}{d.half && d.checkIn ? ` ${d.checkIn}` : ` ${t.label}`}</span>;
   return <span className={`inline-block whitespace-nowrap rounded-lg px-2 py-1 text-xs tabular-nums ${u.cls}`}>{d.status === "sub" ? `↔ ${d.subClass}` : d.checkIn ?? u.label}</span> };
 
 function AdminView() {
   const [w, setW] = useState<StaffWeek | null>(null); const [wk, setWk] = useState(() => mondayOf(todayStr()));
   const [err, setErr] = useState(""); const [msg, setMsg] = useState("");
-  const load = useCallback(() => { setErr(""); getStaffWeek(wk).then(setW).catch(e => setErr(errMsg(e))) }, [wk]);
+  const [pend, setPend] = useState<Leave[]>([]);
+  const load = useCallback(() => { setErr(""); getStaffWeek(wk).then(setW).catch(e => setErr(errMsg(e))); myLeaves("?status=pending").then(setPend).catch(() => {}) }, [wk]);
   useEffect(load, [load]);
   const exportCsv = () => { if (!w) return;
     const head = ["Giáo viên", "Lớp", "Ca", ...w.rows[0]?.days.map(d => dm(d.date)) ?? [], "Công", "Phép"];
@@ -30,11 +36,15 @@ function AdminView() {
   const nCls = new Set(open.map(x => x.classId ?? x.className)).size, nDays = new Set(open.map(x => x.date)).size;
   const needLabel = open.length ? <>{nCls} lớp{(nDays > 1 || nCls > 1) && <span className="whitespace-nowrap text-base font-semibold"> · {nDays} ngày</span>}</> : <>{s.needSub} lớp</>;
   return <div className="mx-auto max-w-5xl space-y-4" data-testid="staff-admin">
-    <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs text-ink-500">BGH · Nhân sự</p><h1 className="text-2xl font-bold">Chấm công & ca làm <span className="block text-sm font-semibold text-ink-500 sm:inline sm:text-lg"><span className="hidden sm:inline">· </span>
+    <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-xs text-ink-500">Ban giám hiệu · Nhân sự</p><h1 className="text-2xl font-bold">Chấm công & ca làm <span className="block text-sm font-semibold text-ink-500 sm:inline sm:text-lg"><span className="hidden sm:inline">· </span>
         <button aria-label="Tuần trước" className="px-1" onClick={() => setWk(shiftWeek(wk, -1))}>‹</button>{dm(w.from)}–{dm(w.to)}<button aria-label="Tuần sau" className="px-1" onClick={() => setWk(shiftWeek(wk, 1))}>›</button></span></h1></div>
       <div className="flex gap-2"><button onClick={exportCsv} className="min-h-12 rounded-xl border border-ink-100 bg-white px-4 text-sm font-semibold">⬇ Xuất bảng công</button><AssignShift onDone={load} /></div></div>
     {msg && <p className="rounded-xl bg-mint-50 p-3 text-sm text-mint-700" role="status" data-testid="staff-msg">{msg}</p>}
     {err && <p className="rounded-xl bg-rose-100 p-3 text-sm text-rose-600" role="alert">{err}</p>}
+    {pend.length > 0 && <div className="rounded-2xl border border-sun-500 bg-sun-100 p-3" data-testid="pending-leaves"><b>⏳ Đơn nghỉ chờ duyệt ({pend.length})</b>
+      <ul className="mt-2 space-y-2">{pend.map(l => <li key={l.id}><Link href={`/staff/leaves/${l.id}`} className="flex min-h-12 items-center justify-between gap-2 rounded-xl bg-white px-3 text-sm">
+        <span><b>{l.userName}</b>{l.classes.length > 0 && ` · ${l.classes.map(c => c.name).join(", ")}`}<span className="block text-xs text-ink-500">{TYPE_UI[l.type]?.icon} {TYPE_UI[l.type]?.label} · {leaveWhen(l)}</span></span>
+        <span className="whitespace-nowrap font-semibold text-mint-700">Xem & duyệt ›</span></Link></li>)}</ul></div>}
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <div className="rounded-2xl bg-mint-50 p-3"><p className="text-xs text-mint-700">Có mặt hôm nay</p><b className="text-2xl text-mint-700 tabular-nums">{s.present}/{s.total}</b></div>
       <div className="rounded-2xl bg-sun-100 p-3"><p className="text-xs">Đi muộn tuần</p><b className="text-2xl tabular-nums">{s.lateWeek}</b></div>
@@ -43,8 +53,8 @@ function AdminView() {
     {w.subs.filter(x => !x.substitute).map(x => <SubAlert key={x.date + x.className + x.shiftId} x={x} onDone={(t) => { setMsg(t); load() }} onErr={setErr} />)}
     <div className="card hidden sm:block"><table className="w-full text-sm"><thead className="text-left text-xs text-ink-500"><tr><th className="py-2">Giáo viên</th>{WD.map(d => <th key={d}>{d}</th>)}<th>Công</th></tr></thead>
       <tbody className="divide-y divide-ink-100">{w.rows.map(r => <tr key={r.id} className={r.leaveDays ? "bg-peach-50" : ""}><td className="py-3"><b>{r.name}</b><br /><span className="text-xs text-ink-500">{r.className} · {r.shift}</span></td>
-        {r.days.map(d => <td key={d.date}><Cell d={d} /></td>)}<td className="font-semibold">{r.workDays}{r.leaveDays > 0 && <span className="ml-1 text-xs text-sky-500">+{r.leaveDays}P</span>}</td></tr>)}</tbody></table></div>
-    <div className="space-y-2 sm:hidden">{w.rows.map(r => <div key={r.id} className="card !p-3"><div className="flex justify-between"><div className="min-w-0"><b className="block truncate">{r.name}</b><p className="text-xs text-ink-500">{r.className} · {r.shift}</p></div><b className="shrink-0">{r.workDays} công{r.leaveDays > 0 && <span className="text-xs text-sky-500"> +{r.leaveDays}P</span>}</b></div>
+        {r.days.map(d => <td key={d.date}><Cell d={d} /></td>)}<td className="font-semibold">{r.workDays}{r.leaveDays > 0 && <span className="ml-1 text-xs text-sky-500">+{String(r.leaveDays).replace(".", ",")}P</span>}</td></tr>)}</tbody></table></div>
+    <div className="space-y-2 sm:hidden">{w.rows.map(r => <div key={r.id} className="card !p-3"><div className="flex justify-between"><div className="min-w-0"><b className="block truncate">{r.name}</b><p className="text-xs text-ink-500">{r.className} · {r.shift}</p></div><b className="shrink-0">{r.workDays} công{r.leaveDays > 0 && <span className="text-xs text-sky-500"> +{String(r.leaveDays).replace(".", ",")}P</span>}</b></div>
       <div className="mt-2 grid grid-cols-5 gap-1 text-center text-[11px]">{r.days.map((d, i) => <div key={d.date} className={`rounded-lg py-1.5 ${ST_UI[d.status].cls}`}>{WD[i]}<br />{d.status === "sub" ? "↔" : d.checkIn ?? ST_UI[d.status].label}</div>)}</div></div>)}</div>
   </div>;
 }
@@ -96,10 +106,9 @@ function AssignShift({ onDone }: { onDone: () => void }) {
 function TeacherView() {
   const [m, setM] = useState<MyToday | null>(null); const [now, setNow] = useState("");
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false); const [leave, setLeave] = useState(false);
-  const [lv, setLv] = useState({ from: todayStr(), to: todayStr(), reason: "" }); const [lmsg, setLmsg] = useState("");
+  const [lmsg, setLmsg] = useState(""); const [mine, setMine] = useState<Leave[]>([]);
   const punch = async (out: boolean) => { setBusy(true); setErr(""); try { setM(await (out ? checkOut() : checkIn())) } catch (e) { setErr(errMsg(e)) } finally { setBusy(false) } };
-  const sendLeave = async () => { setBusy(true); setErr(""); try { await requestLeave(lv.from, lv.to, lv.reason.trim()); setLeave(false); setLmsg("Đã gửi đơn nghỉ phép, chờ BGH duyệt"); setLv({ ...lv, reason: "" }) } catch (e) { setErr(errMsg(e)) } finally { setBusy(false) } };
-  useEffect(() => { getMyToday().then(setM).catch(e => setErr(errMsg(e))); const t = () => setNow(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" })); t(); const id = setInterval(t, 15000); return () => clearInterval(id) }, []);
+  useEffect(() => { getMyToday().then(setM).catch(e => setErr(errMsg(e))); myLeaves().then(setMine).catch(() => {}); const t = () => setNow(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" })); t(); const id = setInterval(t, 15000); return () => clearInterval(id) }, []);
   if (!m) return err ? <p className="text-rose-500" role="alert">{err}</p> : <p className="text-ink-500">Đang tải…</p>;
   const inShift = !!m.checkIn && !m.checkOut;
   return <div className="mx-auto max-w-md space-y-3" data-testid="staff-teacher">
@@ -112,13 +121,11 @@ function TeacherView() {
     {m.sub && <div className="rounded-2xl border border-peach-300 bg-peach-50 p-3 text-sm"><b className="text-peach-600">↔ Trông thay hôm nay</b><p className="mt-1">Trông <b>{m.sub.className}</b> thay {m.sub.absent} ({m.sub.reason})</p></div>}
     <div className="card !p-3"><b>Tuần này</b><div className="mt-2 grid grid-cols-5 gap-1 text-center text-xs">{m.week.map((d, i) => <div key={d.date} className={`rounded-lg py-2 ${ST_UI[d.status].cls}`}>{WD[i]}<br />{d.status === "ok" ? "✓" : d.status === "none" ? "…" : ST_UI[d.status].label}</div>)}</div></div>
     {lmsg && <p className="rounded-xl bg-mint-50 p-3 text-sm text-mint-700" role="status">{lmsg}</p>}
-    {leave ? <div className="card space-y-2 !p-3" data-testid="leave-form"><b>Xin nghỉ phép</b>
-      <div className="grid grid-cols-2 gap-2"><label className="text-xs text-ink-500">Từ ngày<DateField value={lv.from} min={todayStr()} onChange={v => setLv({ ...lv, from: v })} aria-label="Từ ngày" /></label>
-        <label className="text-xs text-ink-500">Đến ngày<DateField value={lv.to} min={lv.from} onChange={v => setLv({ ...lv, to: v })} aria-label="Đến ngày" /></label></div>
-      <textarea aria-label="Lý do" placeholder="Lý do" className="input w-full" rows={2} value={lv.reason} onChange={e => setLv({ ...lv, reason: e.target.value })} />
-      <div className="flex gap-2"><button className="min-h-12 flex-1 rounded-xl border border-ink-100" onClick={() => setLeave(false)}>Huỷ</button>
-        <button className="btn min-h-12 flex-1" disabled={busy || !lv.reason.trim() || !lv.from || !lv.to} onClick={sendLeave}>Gửi đơn</button></div></div>
-      : <button onClick={() => { setLeave(true); setLmsg("") }} className="min-h-12 w-full rounded-xl border border-ink-100 bg-white font-semibold">🏖 Xin nghỉ phép</button>}
+    {leave ? <LeaveForm onCancel={() => setLeave(false)} onDone={() => { setLeave(false); setLmsg("Đã gửi đơn, Ban giám hiệu sẽ được báo"); myLeaves().then(setMine).catch(() => {}) }} />
+      : <button onClick={() => { setLeave(true); setLmsg("") }} className="min-h-12 w-full rounded-xl border border-ink-100 bg-white font-semibold" data-testid="btn-leave">🏖 Xin nghỉ</button>}
+    {mine.length > 0 && <div className="card !p-3" data-testid="my-leaves"><b>Đơn nghỉ của tôi</b><ul className="mt-2 space-y-2">{mine.slice(0, 5).map(l => <li key={l.id}>
+      <Link href={`/staff/leaves/${l.id}`} className={`flex min-h-12 items-center justify-between gap-2 rounded-xl border px-3 text-sm ${STATUS_UI[l.status].cls}`}>
+        <span>{TYPE_UI[l.type]?.icon} {leaveWhen(l)}</span><span className="whitespace-nowrap font-semibold">{STATUS_UI[l.status].short} ›</span></Link></li>)}</ul></div>}
   </div>;
 }
 

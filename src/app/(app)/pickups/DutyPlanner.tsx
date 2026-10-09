@@ -26,6 +26,6 @@ export function DutyPlanner() {
         {ds.map(x => <span key={x.id} className="flex items-center gap-1 rounded-full bg-mint-100 px-3 py-1 text-sm text-mint-700">🛡️ {x.userName}
           {!past && <button className="min-h-8 px-1 text-rose-500" aria-label={`Bỏ ${x.userName}`} disabled={busy} onClick={() => del(x)}>✕</button>}</span>)}
         {!past && <select className="input !w-auto min-h-12 text-sm" value="" disabled={busy} onChange={e => add(d, e.target.value)} data-testid="duty-add">
-          <option value="">+ Phân công…</option>{users.filter(u => !ds.some(x => x.userId === u.id)).map(u => <option key={u.id} value={u.id}>{u.name} ({u.role === "teacher" ? "GV" : u.role === "admin" ? "BGH" : "KT"})</option>)}</select>}</div> })}
+          <option value="">+ Phân công…</option>{users.filter(u => !ds.some(x => x.userId === u.id)).map(u => <option key={u.id} value={u.id}>{u.name} ({u.role === "teacher" ? "GV" : u.role === "admin" ? "Ban giám hiệu" : "KT"})</option>)}</select>}</div> })}
   </section>;
 }

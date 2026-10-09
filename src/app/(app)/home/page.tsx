@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { api, http } from "@/lib/api";
 import { checkIn, checkOut, getMyToday, MyToday, shiftLabel } from "@/lib/staff-api";
 import { classMessages, msgFeatures, vnToday } from "@/lib/messages-api";
+import { Leave, leaveWhen, myLeaves, STATUS_UI, TYPE_UI } from "@/lib/leave-api";
+import SubstituteToday from "@/components/SubstituteToday";
 
 const WD = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 const errMsg = (e: unknown) => (e as Error)?.message || "Có lỗi, vui lòng thử lại";
@@ -12,10 +14,11 @@ const errMsg = (e: unknown) => (e as Error)?.message || "Có lỗi, vui lòng th
 export default function TeacherHome() {
   const me = api.me();
   const [m, setM] = useState<MyToday | null>(null); const [now, setNow] = useState(""); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
-  const [att, setAtt] = useState<{ done: number; total: number } | null>(null); const [meds, setMeds] = useState<number | null>(null);
+  const [att, setAtt] = useState<{ done: number; total: number } | null>(null); const [meds, setMeds] = useState<number | null>(null); const [lv, setLv] = useState<Leave | null>(null);
   const today = vnToday(); const classId = me?.classIds?.[0];
   useEffect(() => {
     getMyToday().then(setM).catch(e => setErr(errMsg(e)));
+    myLeaves().then(ls => setLv(ls.filter(l => l.toDate >= today && l.status !== "cancelled").pop() ?? null)).catch(() => {});
     const t = () => setNow(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" })); t(); const id = setInterval(t, 15000);
     if (classId) {
       http.get<{ items: { status?: string | null }[] }>(`/classes/${classId}/attendance?date=${today}`).then(s => setAtt({ done: s.items.filter(i => i.status).length, total: s.items.length })).catch(() => setAtt(null));
@@ -35,13 +38,17 @@ export default function TeacherHome() {
       {m?.checkOut ? <span className="rounded-xl bg-mint-50 px-3 py-2 text-sm font-semibold text-mint-700">✓ Đã ra ca</span>
         : <button className="btn !min-h-14 shrink-0 px-5" disabled={busy || !m} onClick={() => punch(inShift)} data-testid="btn-checkin">{inShift ? "Ra ca" : "✓ Vào ca"}</button>}</div>
     {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
-    {m?.sub && <div className="rounded-2xl border border-peach-300 bg-peach-50 p-3 text-sm"><b className="text-peach-600">↔ Trông thay hôm nay</b><p className="mt-1">Trông <b>{m.sub.className}</b> thay {m.sub.absent} ({m.sub.reason})</p></div>}
+    <SubstituteToday />
+    {lv && <Link href={`/staff/leaves/${lv.id}`} className={`block rounded-2xl border border-l-4 p-3 text-sm ${STATUS_UI[lv.status].cls}`} data-testid="home-leave">
+      <p className="font-semibold">{TYPE_UI[lv.type]?.icon} Đơn nghỉ {TYPE_UI[lv.type]?.label.toLowerCase()} · {leaveWhen(lv)}</p>
+      <p>{STATUS_UI[lv.status].label}{lv.status === "approved" && lv.substitutions.length ? ` · Cô trông thay: ${Array.from(new Set(lv.substitutions.map(x => x.substituteTeacher?.name).filter(Boolean))).join(", ")}` : ""}{lv.status === "rejected" && lv.decisionNote ? ` · ${lv.decisionNote}` : ""}</p></Link>}
     <div className="grid grid-cols-2 gap-2">
       <Link href="/attendance" className="card !p-3" data-testid="home-att"><p className="text-xs text-ink-500">Điểm danh lớp</p><b className="text-lg">{att === null ? "Đang tải…" : att.done === 0 ? "Chưa điểm" : `${att.done}/${att.total} bé`}</b></Link>
       <Link href="/attendance" className="card !p-3" data-testid="home-meds"><p className="text-xs text-ink-500">Dặn thuốc hôm nay</p><b className={`text-lg ${meds ? "text-peach-600" : ""}`}>{meds === null ? "Đang tải…" : meds ? `💊 ${meds} bé` : "Không có"}</b></Link></div>
     <div className="grid grid-cols-2 gap-2">
       <Link href="/notes" className="card flex min-h-14 items-center !p-3 font-semibold">📝 Nhật ký</Link>
       <Link href="/pickups" className="card flex min-h-14 items-center !p-3 font-semibold">🚸 Giao bé</Link></div>
-    <Link href="/staff" className="flex min-h-12 w-full items-center justify-center rounded-xl border border-ink-100 bg-white font-semibold">🏖 Xin nghỉ · Xem công tuần</Link>
+    <div className="grid grid-cols-2 gap-2"><Link href="/staff/leaves/new" className="flex min-h-12 items-center justify-center rounded-xl border border-ink-100 bg-white font-semibold" data-testid="home-leave-btn">🏖 Xin nghỉ</Link>
+      <Link href="/staff" className="flex min-h-12 items-center justify-center rounded-xl border border-ink-100 bg-white font-semibold">Xem công tuần</Link></div>
   </div>;
 }
