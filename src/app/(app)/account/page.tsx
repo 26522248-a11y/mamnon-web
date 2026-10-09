@@ -23,12 +23,12 @@ export default function Account() {
     <div className="card flex items-center gap-4" data-testid="account-me"><span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-peach-100 text-2xl">👤</span>
       <div className="min-w-0"><div className="text-lg font-bold">{me.name}</div>
         <div className="text-[15px] text-ink-500">{mine ? `${mine.relation}${mine.child ? ` của bé ${mine.child}` : ""} · ${maskPhone(mine.phone)}` : "Phụ huynh"}</div></div></div>
-    <PhotoConsentChoice />
+    <div id="consent" className="scroll-mt-4"><PhotoConsentChoice /></div>
     <div className="card divide-y divide-ink-100 !p-0" data-testid="account-links">
       <Link href="/pickups/delegates" className={row} data-testid="account-delegates"><span>🧑‍🤝‍🧑 Người đón hộ</span><span className="text-ink-300">›</span></Link>
       <Link href="/change-password?back=/account" className={row} data-testid="account-password"><span>🔑 Đổi mật khẩu</span><span className="text-ink-300">›</span></Link>
-      <div className={row} data-testid="account-push"><span>🔔 Cài đặt thông báo<span className="block text-[15px] text-ink-500">{pushLabel}</span>{pushErr && <span className="block text-[15px] text-rose-500">{pushErr}</span>}</span>
-        {push === "default" && <button className="btn min-h-12 shrink-0" onClick={enable} data-testid="account-push-enable">Bật</button>}</div>
+      <div className={row} data-testid="account-push"><span>🔔 Cài đặt thông báo<span className="block text-[15px] text-ink-500">{push === "denied" ? "Muốn bật lại: vào Cài đặt của trình duyệt, chọn Thông báo, cho phép trang này." : push === "subscribed" ? "Bạn sẽ nhận tin khi có người đón bé" : pushLabel}</span>{pushErr && <span className="block text-[15px] text-rose-500">{pushErr}</span>}</span>
+        {push === "default" ? <button className="btn min-h-12 shrink-0" onClick={enable} data-testid="account-push-enable">Bật</button> : push && <span className={`shrink-0 rounded-full px-3 py-1 text-[15px] ${push === "subscribed" ? "bg-mint-100 text-mint-700" : "bg-ink-100 text-ink-500"}`} data-testid="account-push-state">{push === "subscribed" ? "✓ Đang bật" : push === "denied" ? "Đang tắt" : "Không dùng được"}</span>}</div>
       <Link href="/messages" className={row} data-testid="account-messages"><span>💬 Nhắn cô giáo</span><span className="text-ink-300">›</span></Link>
       <Link href="/photos" className={row}><span>📸 Ảnh lớp</span><span className="text-ink-300">›</span></Link>
       <Link href="/health" className={row}><span>📏 Sức khỏe</span><span className="text-ink-300">›</span></Link>

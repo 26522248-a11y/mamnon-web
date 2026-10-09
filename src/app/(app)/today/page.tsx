@@ -9,7 +9,7 @@ const ST: Record<string, [string, string]> = { present: ["bg-mint-500 text-white
 const MEAL: Record<string, string> = { breakfast: "Sáng", lunch: "Trưa", snack: "Xế" };
 function monday(d = new Date()) { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.toLocaleDateString("sv-SE") }
 export default function Today() {
-  const [kids, setKids] = useState<Child[]>([]); const [i, setI] = useState(0); const [att, setAtt] = useState<Att | null>(null);
+  const [kids, setKids] = useState<Child[]>([]); const [i, setI] = useState(0); const [att, setAtt] = useState<Att | null | undefined>(undefined);
   const [feed, setFeed] = useState<PickupRequest[]>([]); const [pmsg, setPmsg] = useState(""); const [deep, setDeep] = useState<{ req: string; action: "confirm" | "reject" | null } | null>(null); const [menu, setMenu] = useState<Menu | null>(null); const [bal, setBal] = useState<Bal | null>(null); const [note, setNote] = useState<Note | null>(null); const [unread, setUnread] = useState(0); const d = todayStr();
   const [abs, setAbs] = useState<Absence | null>(null); const [askAbs, setAskAbs] = useState(false); const [absReason, setAbsReason] = useState<AbsenceReason | null>(null); const [absNote, setAbsNote] = useState(""); const [absBusy, setAbsBusy] = useState(false); const [absMsg, setAbsMsg] = useState("");
   useEffect(() => { api.children({ limit: 20 }).then(p => setKids(p.items)); http.get<Menu>(`/menus?week=${monday()}`).then(setMenu).catch(() => {}) }, []);
@@ -25,7 +25,7 @@ export default function Today() {
     document.querySelector(`[data-req="${deep.req}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }) }, [deep, feed, kids]);
   const k = kids[i];
   const load = useCallback(() => { if (!k) return;
-    http.get<Att[]>(`/children/${k.id}/attendance?from=${d}&to=${d}`).then(a => setAtt(a[0] ?? null)).catch(() => {});
+    http.get<Att[]>(`/children/${k.id}/attendance?from=${d}&to=${d}`).then(a => setAtt(a[0] ?? null)).catch(() => setAtt(null));
     http.get<Bal>(`/children/${k.id}/balance`).then(setBal).catch(() => {});
     http.get<{ unreadCount: number }>("/notifications/unread-count").then(r => setUnread(r.unreadCount)).catch(() => {});
     http.get<Note[]>(`/children/${k.id}/daily-notes?from=${d}&to=${d}`).then(n => setNote(n[0] ?? null)).catch(() => {});
@@ -34,7 +34,7 @@ export default function Today() {
   const pinned = feed.filter(show).sort((a, b) => Number(b.id === deep?.req) - Number(a.id === deep?.req));
   const deepGone = deep && feed.length > 0 && !pinned.some(r => r.id === deep.req) ? feed.find(r => r.id === deep.req) : null;
   if (!k) return <p>Đang tải…</p>;
-  const st = ST[att?.status ?? ""] ?? ["border-2 border-dashed border-ink-300 text-ink-500", "Chưa điểm danh"]; const todayMenu = menu?.days.find(x => x.date === d);
+  const st = att === undefined ? ["bg-ink-100 text-ink-500 animate-pulse", "Đang tải…"] : ST[att?.status ?? ""] ?? ["border-2 border-dashed border-ink-300 text-ink-500", "Cô chưa điểm danh"]; const todayMenu = menu?.days.find(x => x.date === d);
   const here = att?.status === "present" || att?.status === "late";
   async function sendAbsence() { if (absBusy) return; setAbsBusy(true); setAbsMsg("");
     try { const r = await reportAbsence(k.id, { from: d, reason: absReason ?? "other", ...(absNote.trim() ? { note: absNote.trim() } : {}) }); setAbs(r); setAskAbs(false); setAbsNote(""); setAbsReason(null); load() }
@@ -72,6 +72,7 @@ export default function Today() {
           <button className="min-h-12 rounded-xl bg-sky-500 font-semibold text-white disabled:opacity-60" disabled={absBusy} onClick={sendAbsence} data-testid="absence-confirm">{absBusy ? "Đang gửi…" : "Xác nhận báo nghỉ"}</button></div></div></div>}
     <PickupLine pickup={att?.pickup} reqs={feed.filter(r => r.childId === k.id)} card />
     <Link href="/messages" className="card flex min-h-12 items-center justify-between" data-testid="link-messages"><span>💬 Nhắn cô: báo nghỉ, dặn thuốc, đón muộn</span><span className="text-mint-700">›</span></Link>
+    <Link href="/account#consent" className="card flex min-h-12 items-center justify-between" data-testid="link-consent"><span>📸 Cho cô đăng hình con lên nhóm lớp<span className="block text-[15px] text-ink-500">Xem hoặc đổi Có / Không trong Tài khoản</span></span><span className="text-ink-300">›</span></Link>
     <Link href="/pickups/delegates" className="card flex min-h-12 items-center justify-between" data-testid="link-delegates"><span>🛡️ Người được đón bé</span><span className="text-mint-700">Quản lý ›</span></Link>
     {todayMenu && <Link href="/menu" className="card block" data-testid="tile-menu"><h2 className="mb-2 flex justify-between font-semibold">🍚 Thực đơn hôm nay<span className="text-mint-700">›</span></h2>{Object.entries(todayMenu.meals).filter(([, v]) => v).map(([m, v]) => <div key={m} className="flex gap-3 border-t border-ink-100 py-2 text-sm"><span className="w-10 text-ink-500">{MEAL[m] ?? m}</span><span>{v}{k.allergies && todayMenu.allergyNotes?.[m] && <span className="mt-1 block rounded-xl bg-rose-100 px-2 py-1 text-xs text-rose-500">🔄 {todayMenu.allergyNotes[m]}</span>}</span></div>)}
       {k.allergies && <p className="mt-1 text-xs text-rose-500">Bé dị ứng {k.allergies}, nhà trường sẽ thay món phù hợp.</p>}</Link>}
