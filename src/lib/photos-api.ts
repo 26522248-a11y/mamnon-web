@@ -18,28 +18,38 @@ const unwrap = <T,>(r: { items?: T[] } | T[] | null | undefined): T[] => Array.i
 export const listPosts = (classId: string, before?: string, limit = 20) =>
   http.get<{ items: PhotoPost[]; nextBefore: string | null }>(`/classes/${classId}/photo-posts?limit=${limit}${before ? "&before=" + encodeURIComponent(before) : ""}`)
     .then(r => ({ items: unwrap(r), nextBefore: r?.nextBefore ?? null }));
-/** multipart: files[] (1–20, ≤15MB, JPEG/PNG/WebP/HEIC by magic bytes), caption ≤300, tags = JSON array aligned with files ([["id1"],[],…]).
+/** multipart: files[] (1–20, ≤15MB, JPEG/PNG/WebP/HEIC by magic bytes), caption ≤300, tags = JSON array aligned with files ([["id1"],[],…]),
+ *  clientIds = JSON array aligned with files (stable per photo across retries; a saved clientId returns the old photo, duplicate:true).
  *  400 UNSUPPORTED_IMAGE (file name) · 413 FILE_TOO_LARGE · 400 CHILD_NOT_IN_CLASS · 422 PHOTO_CONSENT_MISSING · 403 not own class. */
-export const createPost = (classId: string, f: FormData) => http.upload<PhotoPost>(`/classes/${classId}/photo-posts`, f);
+export const createPost = (classId: string, f: FormData) => http.upload<PhotoPost & { results?: UploadResult[] }>(`/classes/${classId}/photo-posts`, f);
 /** Authenticated file (use http.blobUrl). download=1 for parents only when the photo tags their own child. */
 export const photoFileUrl = (id: string, size: "thumb" | "full" = "thumb", download = false) => `/photos/${id}/file?size=${size}${download ? "&download=1" : ""}`;
 export const setPhotoTags = (id: string, childIds: string[]) => http.put<PostPhoto>(`/photos/${id}/tags`, { childIds });
 export const unhidePhoto = (id: string) => http.post<PostPhoto>(`/photos/${id}/unhide`, {});
 export const likePost = (id: string, on: boolean) => on ? http.post(`/photo-posts/${id}/like`, {}) : http.del(`/photo-posts/${id}/like`);
 
-/** 422 PHOTO_CONSENT_MISSING on POST photo-posts, resolved per photo (index aligned with files/tags).
- *  Feature-detect: per-photo shape (expected next round3 rev; guessed as details.photos=[{index, children}] + optional details.post = the
- *  post created from the other photos) → server already posted the rest. Current contract (details.children only, nothing saved) → we
- *  compute offending photos from our own tags and the caller re-posts the clean ones. */
-export type PhotoReject = { index: number; children: { childId: string; name: string }[] };
-export function consentRejects(e: unknown, tags: string[][]): { rejects: PhotoReject[]; serverPosted: boolean; post: PhotoPost | null } | null {
-  const x = e as { errorCode?: string; details?: { children?: { childId: string; name: string }[]; photos?: { index?: number; fileIndex?: number; children?: { childId: string; name: string }[] }[]; post?: PhotoPost | null } };
-  if (x?.errorCode !== "PHOTO_CONSENT_MISSING") return null; const d = x.details ?? {};
-  if (Array.isArray(d.photos)) return { serverPosted: true, post: d.post ?? null,
-    rejects: d.photos.map(p => ({ index: p.index ?? p.fileIndex ?? -1, children: p.children ?? [] })).filter(p => p.index >= 0) };
-  const bad = d.children ?? [];
-  return { serverPosted: false, post: null, rejects: tags.map((t, index) => ({ index, children: bad.filter(c => t.includes(c.childId)) })).filter(r => r.children.length) };
+/** Per-photo upload outcome (PM final: server saves valid photos in the same call; 200/201 if ≥1 saved = post view + results,
+ *  422 PHOTO_CONSENT_MISSING if none, details.results). Tolerates both doc spellings: status 'created'|'posted'|'rejected', photo | photoId.
+ *  Items are matched by clientId, else by index in the sent order. */
+type Kid2 = { childId: string; name: string };
+export type UploadResult = { index: number; clientId?: string; file?: string; status: "created" | "posted" | "rejected"; duplicate?: boolean;
+  photo?: PostPhoto | null; photoId?: string | null; code?: string | null; children?: Kid2[] };
+export type UploadOutcome = { post: PhotoPost | null; created: string[]; rejected: Map<string, Kid2[]>; /** code CLIENT_ID_CONFLICT → new id + resend once */ conflicts: string[]; /** rejected for another reason */ failed: string[] };
+export function uploadOutcome(clientIds: string[], tags: string[][], res?: (PhotoPost & { results?: UploadResult[] }) | null, err?: unknown): UploadOutcome | null {
+  const e = err as { errorCode?: string; details?: { children?: Kid2[]; results?: UploadResult[] } } | undefined;
+  if (err && e?.errorCode !== "PHOTO_CONSENT_MISSING" && !(e?.details?.results)) return null;
+  const results = (res ? res.results : e?.details?.results) ?? null; const out: UploadOutcome = { post: res ?? null, created: [], rejected: new Map(), conflicts: [], failed: [] };
+  if (results) { for (const r of results) { const id = r.clientId && clientIds.includes(r.clientId) ? r.clientId : clientIds[r.index]; if (!id) continue;
+      if (r.status !== "rejected") out.created.push(id); else if (r.code === "CLIENT_ID_CONFLICT") out.conflicts.push(id);
+      else if (r.code && r.code !== "PHOTO_CONSENT_MISSING" || !r.children?.length) out.failed.push(id); else out.rejected.set(id, r.children) } return out }
+  if (res) { out.created = [...clientIds]; return out } // 2xx without results → everything saved
+  const bad = e?.details?.children ?? []; // older 422 shape: nothing saved, mark photos tagging those children
+  tags.forEach((t, i) => { const c = bad.filter(k => t.includes(k.childId)); if (c.length) out.rejected.set(clientIds[i], c) });
+  if (!out.rejected.size) clientIds.forEach(id => out.rejected.set(id, bad)); return out;
 }
+/** crypto.randomUUID needs a secure context (LAN http has none) → fallback. */
+export const newClientId = () => typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID()
+  : "c-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 /** 422 PHOTO_CONSENT_MISSING → [{childId, name}] (else null). */
 export function consentMissing(e: unknown): { childId: string; name: string }[] | null {
   const x = e as { errorCode?: string; details?: { children?: { childId: string; name: string }[] } };
