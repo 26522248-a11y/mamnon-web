@@ -1,25 +1,69 @@
-/** Quản lý giáo viên (mockups9). Dữ liệu MẪU cho tới khi có API thật – dev chỉ cần thay 2 hàm dưới. */
+/** Quản lý giáo viên (mockups9). Backend: /staff/* (chấm công, ca làm, nghỉ phép, trông thay). Kiểu dữ liệu giữ nguyên như bản thiết kế. */
+import { http, todayStr } from "./api";
+
 export type AttStatus = "ok" | "late" | "leave" | "absent" | "sub" | "none";
 export type AttDay = { date: string; checkIn?: string; checkOut?: string; status: AttStatus; subClass?: string };
 export type StaffRow = { id: string; name: string; className: string; shift: string; days: AttDay[]; workDays: number; leaveDays: number };
-export type Substitution = { date: string; className: string; absent: string; reason: string; kids: number; substitute?: string; suggestions: string[] };
+export type Suggestion = { userId: string; name: string; freeNote: string };
+export type Substitution = { date: string; className: string; absent: string; reason: string; kids: number; substitute?: string; suggestions: string[];
+  /** ids needed to assign (POST /staff/substitutions) */
+  shiftId?: string; classId?: string; absentUserId?: string; suggestionList?: Suggestion[] };
 export type StaffWeek = { from: string; to: string; summary: { present: number; total: number; lateWeek: number; onLeave: number; needSub: number }; rows: StaffRow[]; subs: Substitution[] };
 export type MyToday = { date: string; shift: string; start: string; end: string; checkIn?: string; checkOut?: string; inSchool: boolean; sub?: { className: string; absent: string; reason: string }; week: AttDay[] };
 
-const D = ["2026-10-06","2026-10-07","2026-10-08","2026-10-09","2026-10-10"];
-const day = (i: number, status: AttStatus, checkIn?: string, subClass?: string): AttDay => ({ date: D[i], status, checkIn, subClass });
-const MOCK: StaffWeek = { from: D[0], to: D[4], summary: { present: 11, total: 12, lateWeek: 3, onLeave: 1, needSub: 1 },
-  rows: [
-    { id: "1", name: "Cô Lan", className: "Mầm 1", shift: "Ca sáng", workDays: 5, leaveDays: 0, days: [day(0,"ok","06:58"),day(1,"ok","07:01"),day(2,"late","07:22"),day(3,"ok","06:55"),day(4,"ok","06:59")] },
-    { id: "2", name: "Cô Hoa", className: "Chồi 1", shift: "Ca sáng", workDays: 3, leaveDays: 2, days: [day(0,"ok","06:50"),day(1,"ok","06:57"),day(2,"ok","07:00"),day(3,"leave"),day(4,"leave")] },
-    { id: "3", name: "Cô Mai", className: "Lá 1", shift: "Ca chiều", workDays: 3, leaveDays: 0, days: [day(0,"ok","10:58"),day(1,"absent"),day(2,"ok","11:00"),day(3,"sub",undefined,"Chồi 1"),day(4,"none")] },
-  ],
-  subs: [{ date: D[4], className: "Chồi 1", absent: "Cô Hoa", reason: "nghỉ phép", kids: 24, suggestions: ["Cô Mai (rảnh ca sáng)", "Cô Thu (bảo mẫu)"] }] };
-const MY: MyToday = { date: D[4], shift: "Ca sáng", start: "07:00", end: "16:00", inSchool: true, sub: { className: "Chồi 1", absent: "Cô Hoa", reason: "nghỉ phép" },
-  week: [day(0,"ok","06:58"),day(1,"ok","07:01"),day(2,"late","07:22"),day(3,"ok","06:55"),day(4,"none")] };
+type ApiStatus = "full" | "late" | "leave" | "absent" | "substitute" | "pending" | "off";
+type ApiShift = { id: string; name: string; startTime: string; endTime: string } | null;
+type ApiDay = { date: string; status: ApiStatus; checkInAt: string | null; checkOutAt?: string | null; shifts?: ApiShift[]; classes?: { id: string; name: string | null }[];
+  substituteFor?: { className: string | null; absentUser: { name: string | null } | null }[] };
+type ApiAttendance = { from: string; to: string; dates: string[];
+  items: { user: { id: string; name: string }; days: ApiDay[]; totals: { workDays: number; leave: number } }[];
+  summary: { present: number; totalStaff: number; leave: number; needSubstitute: number; range: { late: number } } };
+type ApiNeed = { date: string; shift: ApiShift; class: { id: string; name: string | null; children: number }; absentTeachers: { id: string; name: string | null; reason: "leave" | "absent" }[]; suggestions: Suggestion[] };
+type ApiToday = { date: string; shifts: ApiShift[]; checkInAt: string | null; checkOutAt: string | null; status: ApiStatus;
+  substitutions: { role: "covering" | "covered"; class: { name: string | null } | null; absentTeacher: { name: string | null } | null; reason: string | null }[];
+  week: { date: string; status: ApiStatus; checkInAt: string | null }[] };
 
-export const getStaffWeek = async (_from?: string): Promise<StaffWeek> => MOCK;
-export const getMyToday = async (): Promise<MyToday> => MY;
+const ST: Record<ApiStatus, AttStatus> = { full: "ok", late: "late", leave: "leave", absent: "absent", substitute: "sub", pending: "none", off: "none" };
+const hm = (iso?: string | null) => iso ? new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }) : undefined;
+const addDays = (d: string, n: number) => { const x = new Date(d + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10) };
+/** Monday of the week containing d */
+export const mondayOf = (d: string) => { const wd = new Date(d + "T00:00:00Z").getUTCDay() || 7; return addDays(d, 1 - wd) };
+const toDay = (d: ApiDay): AttDay => ({ date: d.date, status: ST[d.status], checkIn: hm(d.checkInAt), checkOut: hm(d.checkOutAt), subClass: d.substituteFor?.[0]?.className ?? undefined });
+const uniq = (xs: (string | null | undefined)[]) => Array.from(new Set(xs.filter(Boolean) as string[]));
+const REASON = { leave: "nghỉ phép", absent: "vắng" } as const;
+
+/** Tuần T2–T6 chứa `from` (mặc định tuần này). */
+export async function getStaffWeek(from?: string): Promise<StaffWeek> {
+  const mon = mondayOf(from || todayStr()), fri = addDays(mon, 4);
+  const [a, n] = await Promise.all([http.get<ApiAttendance>(`/staff/attendance?from=${mon}&to=${fri}`), http.get<{ items: ApiNeed[] }>(`/staff/substitutions/needs?from=${mon}&to=${fri}`)]);
+  const rows: StaffRow[] = a.items.filter(r => r.days.some(d => d.status !== "off") || r.totals.workDays > 0).map(r => ({
+    id: r.user.id, name: r.user.name,
+    className: uniq(r.days.flatMap(d => d.classes?.map(c => c.name) ?? [])).join(", ") || "—",
+    shift: uniq(r.days.flatMap(d => d.shifts?.map(s => s?.name) ?? [])).join(", ") || "—",
+    days: r.days.map(toDay), workDays: r.totals.workDays, leaveDays: r.totals.leave }));
+  const subs: Substitution[] = n.items.map(x => ({
+    date: x.date, className: x.class.name ?? "", kids: x.class.children,
+    absent: x.absentTeachers.map(t => t.name).join(", "), reason: uniq(x.absentTeachers.map(t => REASON[t.reason])).join(", "),
+    suggestions: x.suggestions.map(s => `${s.name} (${s.freeNote.toLowerCase()})`), suggestionList: x.suggestions,
+    shiftId: x.shift?.id, classId: x.class.id, absentUserId: x.absentTeachers[0]?.id }));
+  const s = a.summary;
+  return { from: mon, to: fri, rows, subs, summary: { present: s.present, total: s.totalStaff, lateWeek: s.range.late, onLeave: s.leave, needSub: s.needSubstitute } };
+}
+
+function toMy(t: ApiToday): MyToday {
+  const sh = t.shifts.filter(Boolean) as NonNullable<ApiShift>[];
+  const cov = t.substitutions.find(x => x.role === "covering");
+  return { date: t.date, shift: sh.map(x => x.name).join(", ") || "Không có ca", start: sh[0]?.startTime ?? "", end: sh.map(x => x.endTime).sort().pop() ?? "",
+    checkIn: hm(t.checkInAt), checkOut: hm(t.checkOutAt), inSchool: !!t.checkInAt && !t.checkOutAt,
+    sub: cov ? { className: cov.class?.name ?? "", absent: cov.absentTeacher?.name ?? "", reason: cov.reason ?? "" } : undefined,
+    week: t.week.map(d => ({ date: d.date, status: ST[d.status], checkIn: hm(d.checkInAt) })) };
+}
+export const getMyToday = async (): Promise<MyToday> => toMy(await http.get<ApiToday>("/staff/me/today"));
+export const checkIn = async (): Promise<MyToday> => toMy(await http.post<ApiToday>("/staff/me/check-in", {}));
+export const checkOut = async (): Promise<MyToday> => toMy(await http.post<ApiToday>("/staff/me/check-out", {}));
+export const requestLeave = (fromDate: string, toDate: string, reason: string) => http.post("/staff/leaves", { fromDate, toDate, reason });
+export const assignSubstitute = (x: Substitution, substituteUserId: string) =>
+  http.post("/staff/substitutions", { date: x.date, shiftId: x.shiftId, classId: x.classId, absentUserId: x.absentUserId, substituteUserId, reason: x.reason });
 
 export const ST_UI: Record<AttStatus, { cls: string; label: string }> = {
   ok: { cls: "bg-mint-100 text-mint-700", label: "Đủ" }, late: { cls: "bg-sun-100 text-ink-900", label: "Muộn" },
