@@ -7,7 +7,8 @@ type Menu = { days: { date: string; meals: Record<string, string | null>; allerg
 type Note = { date: string; breakfast?: string | null; eating: string | null; sleepMinutes: number | null; mood: string | null; toilet: string | null; note: string | null }; type Bal = { balance: number; outstanding: unknown[] };
 const ST: Record<string, [string, string]> = { present: ["bg-mint-500 text-white", "Bé đã đến lớp"], late: ["bg-sun-500", "Bé đến muộn"], absent: ["bg-rose-500 text-white", "Bé nghỉ hôm nay"] };
 const MEAL: Record<string, string> = { breakfast: "Sáng", lunch: "Trưa", snack: "Xế" };
-function monday(d = new Date()) { const x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.toLocaleDateString("sv-SE") }
+/** P13: week of the school day (VN), not the device day */
+function monday() { const x = new Date(todayStr() + "T00:00:00"); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.toLocaleDateString("sv-SE") }
 export default function Today() {
   const [kids, setKids] = useState<Child[]>([]); const [i, setI] = useState(0); const [att, setAtt] = useState<Att | null | undefined>(undefined);
   const [feed, setFeed] = useState<PickupRequest[]>([]); const [pmsg, setPmsg] = useState(""); const [deep, setDeep] = useState<{ req: string; action: "confirm" | "reject" | null } | null>(null); const [menu, setMenu] = useState<Menu | null>(null); const [bal, setBal] = useState<Bal | null>(null); const [note, setNote] = useState<Note | null>(null); const [unread, setUnread] = useState(0); const d = todayStr();
@@ -54,7 +55,7 @@ export default function Today() {
     {unread > 0 && <Link href="/notifications" data-testid="today-unread" className="card flex min-h-12 items-center justify-between border-l-4 border-rose-500"><span>🔔 Bạn có <b>{unread}</b> thông báo chưa đọc</span><span className="text-mint-700">Xem ›</span></Link>}
     {kids.length > 1 && <div className="flex gap-2">{kids.map((x, j) => <button key={x.id} onClick={() => setI(j)} className={`min-h-12 rounded-xl px-4 ${j === i ? "bg-mint-500 text-white" : "bg-white"}`}>{x.fullName.split(" ").pop()}</button>)}</div>}
     <div className="card flex items-center gap-4 bg-gradient-to-br from-mint-100 to-peach-50"><Photo url={k.photoUrl} id={k.id} withdrawn={k.status === "withdrawn"} size={72} />
-      <div><div className="text-sm text-ink-500">Bé hôm nay · {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric" })}</div><h1 className="text-xl font-bold">{k.fullName}</h1><div className="text-sm">{k.className}</div></div></div>
+      <div><div className="text-sm text-ink-500">Bé hôm nay · {new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric", timeZone: "Asia/Ho_Chi_Minh" })}</div><h1 className="text-xl font-bold">{k.fullName}</h1><div className="text-sm">{k.className}</div></div></div>
     <SubstituteCard childId={k.id} classId={k.classId} childName={`bé ${k.fullName.split(" ").pop()}`} today={d} />
     <Link href={`/today/log/${k.id}?tab=attendance`} className={`block rounded-2xl p-4 text-center text-lg font-semibold ${st[0]}`} data-testid="tile-attendance">{st[1]} <span className="text-sm font-normal opacity-80">›</span></Link>
     {abs || att?.status === "absent" ? <div className="card flex items-center justify-between gap-2 border-l-4 border-sky-500" data-testid="absence-reported"><span>🏠 <b>Đã báo nghỉ hôm nay</b>{abs && <span className="block text-sm text-ink-500">{ABSENCE_REASONS.find(r => r[0] === abs.reason)?.[1]}{abs.note ? ` · ${abs.note}` : ""}</span>}</span>

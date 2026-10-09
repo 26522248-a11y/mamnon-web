@@ -48,7 +48,7 @@ export default function ReportsPage() {
     setBusy(true); setErr("");
     const url = tab === "attendance" ? `/api/v1/reports/attendance/export?fromMonth=${month}&toMonth=${month}`
       : tab === "enrollment" ? "/api/v1/reports/enrollment/export" : `/api/v1/reports/finance/export?fromMonth=${finFrom}&toMonth=${month}`;
-    const name = tab === "attendance" ? `chuyen-can_${month}.xlsx` : tab === "enrollment" ? `si-so_${new Date().toLocaleDateString("sv-SE")}.xlsx` : `thu-chi_${finFrom}_${month}.xlsx`;
+    const name = tab === "attendance" ? `chuyen-can_${month}.xlsx` : tab === "enrollment" ? `si-so_${new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" })}.xlsx` : `thu-chi_${finFrom}_${month}.xlsx`;
     try {
       const blob = await http.blobUrl(url);
       if (!blob) throw new Error("Không xuất được file Excel");
