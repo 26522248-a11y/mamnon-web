@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react"; import { useRouter } from "next/navigation"; import { api, roleHome } from "@/lib/api"; import { APP_NAME, useSchool } from "@/lib/school";
+import { useEffect, useState } from "react"; import { useRouter } from "next/navigation"; import { api, roleHome } from "@/lib/api"; import { APP_NAME, useSchool } from "@/lib/school";
 export default function Login() {
   const r = useRouter(); const [u, setU] = useState(""); const [p, setP] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false); const school = useSchool();
+  useEffect(() => { api.restore().then(m => { if (m) r.replace(roleHome(m)) }).catch(() => {}) }, [r]); // H5: still signed in → skip login
   async function submit(e: React.FormEvent) { e.preventDefault(); setBusy(true); setErr("");
     try { const me = await api.login(u, p); r.push(roleHome(me)) } catch (x) { setErr((x as Error).message) } finally { setBusy(false) } }
   return <main className="flex min-h-screen items-center justify-center p-4">

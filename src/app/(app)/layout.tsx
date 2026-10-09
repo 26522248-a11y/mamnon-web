@@ -37,7 +37,7 @@ const MOBILE_TABS: Record<Role, string[]> = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const r = useRouter(); const path = usePathname(); const [me, setMe] = useState<User | null>(null); const [more, setMore] = useState(false); const school = useSchool();
   useEffect(() => { setMore(false) }, [path]);
-  useEffect(() => { const m = api.me(); if (!m) { r.replace("/login"); return } if (m.mustChangePassword) { r.replace("/change-password"); return } const ok = NAV.filter(n => n.roles.includes(m.role)); if (!ok.some(n => path.startsWith(n.href))) { r.replace(ok[0].href); return } setMe(m) }, [r, path]);
+  useEffect(() => { let off = false; api.restore().then(m => { if (off) return; if (!m) { r.replace("/login"); return } if (m.mustChangePassword) { r.replace("/change-password"); return } const ok = NAV.filter(n => n.roles.includes(m.role)); if (!ok.some(n => path.startsWith(n.href))) { r.replace(ok[0].href); return } setMe(m) }); return () => { off = true } }, [r, path]);
   if (!me || !NAV.some(n => n.roles.includes(me.role) && path.startsWith(n.href))) return null; const nav = NAV.filter(n => n.roles.includes(me.role));
   const want = MOBILE_TABS[me.role] ?? []; const tabs = want.map(h => nav.find(n => n.href === h)).filter((n): n is (typeof nav)[number] => !!n).slice(0, 4);
   const rest = nav.filter(n => !tabs.includes(n));
