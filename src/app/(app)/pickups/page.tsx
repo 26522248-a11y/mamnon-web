@@ -43,7 +43,7 @@ function ParentView() {
   const [rs, setRs] = useState<PickupRequest[] | null>(null);
   useEffect(() => { listRequests({ date: todayStr() }).then(setRs).catch(() => setRs([])) }, []);
   return <div className="mx-auto max-w-md space-y-4"><h1 className="text-2xl font-bold">Đón bé</h1>
-    <Link href="/pickups/delegates" className="card flex min-h-14 items-center justify-between" data-testid="link-delegates"><span>🛡️ <b>Người được đón bé</b><span className="block text-sm text-ink-500">Thêm người đón hộ (ảnh + CCCD)</span></span><span className="text-mint-700">›</span></Link>
+    <Link href="/pickups/delegates" className="card flex min-h-14 items-center justify-between" data-testid="link-delegates"><span>🛡️ <b>Người được đón bé</b><span className="block text-sm text-ink-500">Thêm người đón hộ (ảnh và căn cước)</span></span><span className="text-mint-700">›</span></Link>
     {rs?.some(r => r.needsMyAction) && <Link href="/today" className="block rounded-2xl bg-rose-500 p-4 font-semibold text-white">⚠ Có người đang chờ bạn xác nhận đón bé ›</Link>}
     <h2 className="font-semibold">Yêu cầu đón hôm nay</h2>
     {rs?.length === 0 && <p className="text-ink-500">Hôm nay không có ai ngoài danh sách xin đón bé.</p>}

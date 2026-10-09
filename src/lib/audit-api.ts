@@ -20,7 +20,7 @@ export const KNOWN_ACTIONS: [string, string][] = [
   ["authorized_picker.*", "Người đón hộ (mọi thao tác)"], ["authorized_picker.approve", "Duyệt người đón hộ"], ["authorized_picker.reject", "Từ chối người đón hộ"],
   ["authorized_picker.delete", "Xoá người đón hộ"], ["pickup_request.parent_on_behalf", "Ghi ý kiến phụ huynh qua điện thoại"],
   ["pickup_duty.*", "Lịch trực đón (mọi thao tác)"], ["pickup_duty.assign", "Phân công trực đón"], ["pickup_duty.remove", "Bỏ phân công trực đón"],
-  ["pickup.identity_view", "Xem CCCD đầy đủ"],
+  ["pickup.identity_view", "Xem số căn cước đầy đủ"],
 ];
 export async function auditActions(): Promise<[string, string][]> { return KNOWN_ACTIONS }
 export const actionLabel = (a: string) => KNOWN_ACTIONS.find(k => k[0] === a)?.[1] ?? a;
@@ -28,14 +28,14 @@ export const actionLabel = (a: string) => KNOWN_ACTIONS.find(k => k[0] === a)?.[
 // ── display: Vietnamese field labels + values (fields seen in audit_events before/after/data, 09/10) ──
 export const FIELD_LABEL: Record<string, string> = {
   phone1: "Số liên hệ 1", phone2: "Số liên hệ 2", phone: "Số điện thoại", fullName: "Họ tên", name: "Họ tên", childName: "Tên bé", relation: "Quan hệ",
-  canPickup: "Được đón bé", isParentAccount: "Tài khoản phụ huynh", idNumber: "CCCD", photo: "Ảnh", status: "Trạng thái", parentStatus: "Phụ huynh xác nhận",
+  canPickup: "Được đón bé", isParentAccount: "Tài khoản phụ huynh", idNumber: "Số căn cước", photo: "Ảnh", status: "Trạng thái", parentStatus: "Phụ huynh xác nhận",
   schoolStatus: "Nhà trường duyệt", dates: "Ngày", date: "Ngày", note: "Ghi chú", photoConsent: "Đồng ý đăng ảnh", reason: "Lý do", kind: "Loại",
   field: "Dữ liệu xem", purpose: "Mục đích", username: "Tên đăng nhập", account: "Tài khoản", removed: "Đã gỡ", pickedUpByName: "Người đón", pickedUpAt: "Giờ đón",
   expiresAt: "Hết hạn lúc", decision: "Quyết định", step: "Bước",
 };
 const VALUE_TEXT: Record<string, string> = {
   pending: "Chờ duyệt", approved: "Đã duyệt", rejected: "Từ chối", expired: "Hết hạn", active: "Đang hiệu lực", cancelled: "Đã hủy", confirmed: "Đã xác nhận",
-  approve: "Đồng ý", reject: "Từ chối", set: "Có ảnh", id_number: "Số CCCD", handover: "Giao bé", guardian: "Phụ huynh", authorized_picker: "Người đón hộ", pickup_request: "Người ngoài danh sách",
+  approve: "Đồng ý", reject: "Từ chối", set: "Có ảnh", id_number: "Số căn cước", handover: "Giao bé", guardian: "Phụ huynh", authorized_picker: "Người đón hộ", pickup_request: "Người ngoài danh sách",
   parent: "Phụ huynh", school: "Nhà trường",
 };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

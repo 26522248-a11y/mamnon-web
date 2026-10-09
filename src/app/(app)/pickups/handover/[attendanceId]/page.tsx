@@ -39,12 +39,12 @@ export default function Handover() {
     <h2 className="font-semibold">Bố mẹ / người giám hộ</h2>
     {o.guardians.map(g => <button key={g.id} disabled={!g.canPickup} data-testid="handover-guardian" onClick={() => setSel({ kind: "guardian", id: g.id })}
       className={`card flex min-h-14 w-full items-center justify-between text-left ${g.canPickup ? "" : "bg-rose-100"}`}>
-      <span><b>{g.fullName}</b> <span className="text-ink-500">({g.relation})</span><span className="block text-xs text-ink-500">CCCD {idLast4(g.idNumberMasked)}</span></span>
+      <span><b>{g.fullName}</b> <span className="text-ink-500">({g.relation})</span><span className="block text-xs text-ink-500">Căn cước {idLast4(g.idNumberMasked)}</span></span>
       <span className="text-sm">{g.canPickup ? (g.canHandOver ? "Đối chiếu ›" : "") : "⛔ Không được đón"}</span></button>)}
     {o.authorizedPickers.length > 0 && <h2 className="font-semibold">Người đón hộ phụ huynh đăng ký</h2>}
     {o.authorizedPickers.map(p => <div key={p.id} className={`card flex items-center gap-3 ${p.status === "approved" ? "" : p.status === "pending" ? "bg-sun-100" : "bg-rose-100"}`} data-testid="handover-delegate" data-status={p.status}>
       <PersonPhoto url={p.photoUrl} alt={p.fullName} className="h-14 w-14 shrink-0" />
-      <div className="flex-1"><b>{p.fullName}</b>{p.relation && ` (${p.relation})`}<div className="text-xs text-ink-500">CCCD {idLast4(p.idNumberMasked)}</div>
+      <div className="flex-1"><b>{p.fullName}</b>{p.relation && ` (${p.relation})`}<div className="text-xs text-ink-500">Căn cước {idLast4(p.idNumberMasked)}</div>
         {p.status === "pending" && <div className="text-xs">Chưa được trường duyệt: phải tạo yêu cầu đón, đủ 2 xác nhận mới giao</div>}
         {p.status === "rejected" && <div className="text-xs text-rose-500">⛔ Trường đã từ chối, không giao bé</div>}</div>
       {p.status === "approved" && <button className="min-h-12 rounded-xl bg-mint-500 px-3 text-sm text-white" onClick={() => setSel({ kind: "authorized_picker", id: p.id })}>Đối chiếu ›</button>}
@@ -71,14 +71,14 @@ function Detail({ o, sel, reload, onDone }: { o: PickupOptions; sel: Sel; reload
   return <div className="space-y-3" data-testid="handover-detail" data-kind={sel.kind}>
     <PersonPhoto url={idt?.photoUrl ?? (p?.photoUrl ?? r?.photoUrl)} alt={name} className="h-72 w-full" testid="handover-photo" />
     <div className="text-center"><div className="text-2xl font-bold">{name}</div>
-      <div>{relation ? `${relation} của bé · ` : ""}CCCD <b data-testid="handover-cccd">{idt ? idFirstLast(idt.idNumber) : "…"}</b></div>
-      <div className="text-xs text-ink-500">Đối chiếu ảnh và CCCD bản cứng trước khi giao</div></div>
+      <div>{relation ? `${relation} của bé · ` : ""}Căn cước <b data-testid="handover-cccd">{idt ? idFirstLast(idt.idNumber) : "…"}</b></div>
+      <div className="text-xs text-ink-500">Đối chiếu ảnh và căn cước bản cứng trước khi giao</div></div>
     {r && <><StepTick label="Phụ huynh" s={r.parent} testid="tick-parent" /><StepTick label="Nhà trường" s={r.school} testid="tick-school" />
       {r.note && <p className="text-sm text-ink-500">Ghi chú: “{r.note}”</p>}
       <CallPanel r={r} onChange={nr => { setReq(nr); reload() }} /></>}
     {(r?.warnings ?? []).map(w => <p key={w.code} className="rounded-2xl bg-sun-100 p-3 text-sm" data-testid="multi-warning">⚠ {w.message}</p>)}
     {!can && blockers.length > 0 && <ul className="space-y-1 text-sm text-rose-500" data-testid="handover-blockers">{blockers.map(b => <li key={b}>• {BLOCKER_TEXT[b] ?? b}</li>)}</ul>}
-    {!r && can && <label className="flex min-h-12 items-center gap-3 rounded-2xl bg-mint-50 px-4"><input type="checkbox" className="h-6 w-6" checked={checked} onChange={e => setChecked(e.target.checked)} data-testid="handover-checked" />Đã đối chiếu ảnh / CCCD</label>}
+    {!r && can && <label className="flex min-h-12 items-center gap-3 rounded-2xl bg-mint-50 px-4"><input type="checkbox" className="h-6 w-6" checked={checked} onChange={e => setChecked(e.target.checked)} data-testid="handover-checked" />Đã đối chiếu ảnh và căn cước</label>}
     {err && <p className="text-sm text-rose-500" data-testid="handover-error">{err}</p>}
     <button className="min-h-14 w-full rounded-2xl bg-mint-500 text-lg font-semibold text-white disabled:bg-ink-100 disabled:text-ink-500" data-testid="handover-give"
       disabled={busy || !can || (!r && !checked)} onClick={give}>{can ? `Giao bé cho ${name}` : r ? "🔒 Giao bé (cần đủ 2 xác nhận)" : "🔒 Không thể giao bé"}</button></div>;
@@ -100,7 +100,7 @@ function NewRequest({ attendanceId, init, onDone }: { attendanceId: string; init
     <input name="pickerName" className="input" placeholder="Họ tên người đón" required defaultValue={init.pickerName} maxLength={120} />
     <input name="pickerPhone" className="input" placeholder="Số điện thoại" inputMode="tel" required defaultValue={init.pickerPhone} />
     <input name="relation" className="input" placeholder="Quan hệ với bé (vd: Bác)" defaultValue={init.relation} maxLength={40} />
-    <input name="pickerIdNumber" className="input" placeholder="Số CCCD (12 số)" inputMode="numeric" pattern="\d{12}" maxLength={12} />
+    <input name="pickerIdNumber" className="input" placeholder="Số căn cước (12 số)" inputMode="numeric" pattern="\d{12}" maxLength={12} />
     <textarea name="note" className="input" placeholder="Ai báo, báo lúc nào (bắt buộc)" required maxLength={500} />
     {err && <p className="text-sm text-rose-500">{err}</p>}
     <button className="btn min-h-12 w-full" disabled={busy}>{busy ? "Đang gửi…" : "Gửi phụ huynh xác nhận"}</button></form>;

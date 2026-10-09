@@ -25,7 +25,7 @@ export function PickupConfirmCard({ r, onDone, intent }: { r: PickupRequest; onD
       <div className="flex gap-3"><PersonPhoto url={r.photoUrl} alt={r.pickerName} className="h-36 w-28 shrink-0" testid="pickup-photo" />
         <div className="min-w-0 space-y-1"><div className="text-lg font-bold leading-tight">{r.pickerName}</div>
           {r.relation && <div>“{r.relation} của bé”</div>}
-          {r.pickerIdNumberMasked && <div className="text-sm text-ink-500" data-testid="pickup-cccd">CCCD {idLast4(r.pickerIdNumberMasked)}</div>}
+          {r.pickerIdNumberMasked && <div className="text-sm text-ink-500" data-testid="pickup-cccd">Căn cước {idLast4(r.pickerIdNumberMasked)}</div>}
           <div className="text-sm text-ink-500">{maskPhone(r.pickerPhone)}</div>
           <div className="text-xs text-ink-500">Đón bé {r.childName ?? ""}{r.className ? ` (${r.className})` : ""} · gửi lúc {hhmm(r.createdAt)}</div></div></div>
       {r.note && <p className="text-sm" data-testid="pickup-note"><span className="text-xs font-semibold text-ink-500">Lời nhắn:</span> {r.note}</p>}

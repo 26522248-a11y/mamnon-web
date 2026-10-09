@@ -39,11 +39,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!me || !NAV.some(n => n.roles.includes(me.role) && path.startsWith(n.href))) return null; const nav = NAV.filter(n => n.roles.includes(me.role));
   const want = MOBILE_TABS[me.role] ?? []; const tabs = want.map(h => nav.find(n => n.href === h)).filter((n): n is (typeof nav)[number] => !!n).slice(0, 4);
   const rest = nav.filter(n => !tabs.includes(n));
-  return <div className="md:flex">
+  /** U8: hỏi lại trước khi đăng xuất để tránh bấm nhầm. */
+  const logout = async () => { if (!window.confirm("Bạn muốn đăng xuất?")) return; await api.logout(); r.push("/login") };
+  return <div className={`md:flex ${me.role === "parent" ? "parent-ui" : ""}`}>
     <aside className="hidden print:!hidden md:flex md:min-h-screen md:w-60 md:flex-col md:bg-white md:p-4">
       <div className="mb-6 text-xl font-bold text-mint-700">🌱 {school?.name || APP_NAME}</div>
       {nav.map(n => <Link key={n.href} href={n.href} className={`mb-1 rounded-2xl px-4 py-3 ${path.startsWith(n.href) ? "bg-mint-100 font-semibold text-mint-700" : "hover:bg-mint-50"}`}>{n.icon} {n.label}</Link>)}
-      <div className="mt-auto text-sm text-ink-500">{me.name}<button onClick={async () => { await api.logout(); r.push("/login") }} className="block text-peach-500">Đăng xuất</button></div>
+      <div className="mt-auto text-sm text-ink-500">{me.name}<button onClick={logout} className="mt-6 block min-h-11 w-full rounded-xl border border-rose-100 font-semibold text-rose-500">Đăng xuất</button></div>
     </aside>
     <main className="flex-1 p-4 pb-24 md:p-8">{children}</main>
     <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-white pb-[env(safe-area-inset-bottom)] md:hidden print:hidden" data-testid="mobile-nav">
@@ -54,6 +56,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="absolute inset-x-0 bottom-14 rounded-t-3xl bg-white p-4 pb-6 shadow-card" onClick={e => e.stopPropagation()} data-testid="more-sheet">
         <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-ink-100" />
         <div className="grid grid-cols-3 gap-2">{rest.map(n => <Link key={n.href} href={n.href} className={`flex min-h-20 flex-col items-center justify-center rounded-2xl text-sm ${path.startsWith(n.href) ? "bg-mint-100 font-semibold text-mint-700" : "bg-ink-100/50"}`}><div className="text-2xl">{n.icon}</div>{n.label}</Link>)}</div>
-        <div className="mt-4 flex items-center justify-between border-t border-ink-100 pt-3 text-sm"><span className="text-ink-500">{me.name}</span>
-          <button className="min-h-12 px-3 font-semibold text-peach-500" data-testid="btn-logout-mobile" onClick={async () => { await api.logout(); r.push("/login") }}>Đăng xuất</button></div></div></div>}</div>;
+        <div className="mt-4 border-t border-ink-100 pt-3 text-sm"><p className="text-ink-500">{me.name}</p>
+          <button className="mt-8 min-h-14 w-full rounded-2xl border-2 border-rose-100 font-semibold text-rose-500" data-testid="btn-logout-mobile" onClick={logout}>Đăng xuất</button></div></div></div>}</div>;
 }

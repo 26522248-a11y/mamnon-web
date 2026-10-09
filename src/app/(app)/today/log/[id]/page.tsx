@@ -22,8 +22,8 @@ export default function ChildLog({ params }: { params: { id: string } }) {
         {a.note && <div className="text-sm text-ink-500">{a.note}</div>}</div><span className={`shrink-0 rounded-full px-3 py-1 text-sm font-semibold ${s[0]}`}>{s[1]}</span></div> }))}
     {tab === "notes" && (notes === null ? <p className="text-ink-500">Đang tải…</p> : notes.length === 0 ? <p className="text-ink-500">Cô giáo chưa ghi nhật ký trong 2 tuần qua</p> :
       notes.map(n => <div key={n.date} className="card space-y-1"><b>{wd(n.date)} {vnDate(n.date)}</b>
-        <div className="grid grid-cols-3 gap-2 text-center text-sm"><div className="rounded-2xl bg-mint-50 p-2"><div className="text-xs text-ink-500">Ăn trưa</div><b>{EAT.find(e => e[0] === n.eating)?.[1] ?? "–"}</b></div>
-          <div className="rounded-2xl bg-sky-100 p-2"><div className="text-xs text-ink-500">Ngủ trưa</div><b>{sleepText(n.sleepMinutes) || "–"}</b></div><div className="rounded-2xl bg-sun-100 p-2"><div className="text-xs text-ink-500">Tâm trạng</div><b>{n.mood ?? "–"}</b></div></div>
+        <div className="grid grid-cols-3 gap-2 text-center text-sm"><div className="rounded-2xl bg-mint-50 p-2"><div className="text-xs text-ink-500">Ăn trưa</div><b>{EAT.find(e => e[0] === n.eating)?.[1] ?? "Chưa ghi"}</b></div>
+          <div className="rounded-2xl bg-sky-100 p-2"><div className="text-xs text-ink-500">Ngủ trưa</div><b>{sleepText(n.sleepMinutes) || "Chưa ghi"}</b></div><div className="rounded-2xl bg-sun-100 p-2"><div className="text-xs text-ink-500">Tâm trạng</div><b>{n.mood ?? "Chưa ghi"}</b></div></div>
         {n.note && <p className="whitespace-pre-line">“{n.note}”</p>}</div>))}
   </div>;
 }
