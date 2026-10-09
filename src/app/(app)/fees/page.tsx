@@ -62,9 +62,13 @@ function StaffFees() {
           <td className="text-right font-semibold">{vnd(d.balance)}</td><td className="text-right text-rose-500">{d.overdueAmount ? vnd(d.overdueAmount) : "–"}</td><td>{vnDate(d.oldestDueDate)}</td>
           <td><StatusPill inv={{ status: "unpaid", overdue: d.overdue }} /></td>
           <td className="py-1.5 text-right align-middle"><Link href={`/fees/child/${d.childId}`} className="btn inline-flex !min-h-10 items-center justify-center !bg-peach-500 disabled:!bg-ink-100 !py-0 text-xs" data-testid="btn-collect">Ghi thu</Link></td></tr>)}</tbody></table></div>
-      <div className="space-y-2 md:hidden">{debts?.items.map(d => <Link key={d.childId} href={`/fees/child/${d.childId}`} data-testid="debt-row" data-overdue={d.overdue} className={`flex min-h-14 items-center gap-3 rounded-2xl p-3 ${d.overdue ? "bg-rose-100" : "bg-ink-100/40"}`}>
-        <Photo id={d.childId} size={40} withdrawn={d.childStatus === "withdrawn"} /><div className="flex-1"><div className="font-semibold">{d.fullName}</div><div className="text-xs text-ink-500">{d.className} · hạn {vnDate(d.oldestDueDate)}</div></div>
-        <div className="text-right"><div className="font-bold">{vnd(d.balance)}</div>{d.overdue && <div className="text-xs text-rose-500">⚠ Quá hạn</div>}</div></Link>)}</div>
+      {/* B10 (mockups8): 390px card — info row (badge min-w + tabular-nums), full-width "Ghi thu" button below */}
+      <div className="space-y-2 md:hidden">{debts?.items.map(d => <div key={d.childId} data-testid="debt-row" data-overdue={d.overdue} className={`rounded-2xl p-3 ${d.overdue ? "bg-rose-100" : "bg-ink-100/40"}`}>
+        <Link href={`/fees/child/${d.childId}`} className="flex min-h-12 items-start gap-3">
+          <Photo id={d.childId} size={40} withdrawn={d.childStatus === "withdrawn"} /><div className="min-w-0 flex-1"><div className="truncate font-semibold">{d.fullName}</div><div className="text-xs text-ink-500">{d.className} · hạn {vnDate(d.oldestDueDate)}</div>
+            <div className="mt-0.5 whitespace-nowrap font-bold tabular-nums">{vnd(d.balance)}</div></div>
+          {d.overdue && <span className="min-w-[64px] shrink-0 whitespace-nowrap rounded-full bg-white/70 px-2 py-1 text-center text-xs tabular-nums text-rose-500">⚠ Quá hạn</span>}</Link>
+        <Link href={`/fees/child/${d.childId}`} className="btn mt-3 flex h-12 w-full items-center justify-center !bg-peach-500 !py-0" data-testid="btn-collect">Ghi thu</Link></div>)}</div>
       {debts && <p className="mt-2 text-xs text-ink-500">{debts.overdueRule}</p>}</div>}
     {tab === "invoices" && <div className="card space-y-3">
       <div className="flex flex-wrap gap-2"><input type="month" className="input !w-auto" value={period} onChange={e => { setPeriod(e.target.value); setPage(1) }} data-testid="inv-period" />
