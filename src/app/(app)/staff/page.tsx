@@ -120,7 +120,7 @@ function TeacherView() {
         : <button className="btn mt-3 w-full !min-h-14 text-base" disabled={busy} onClick={() => punch(inShift)} data-testid="btn-checkin">{inShift ? "Ra ca" : "✓ Vào ca"}</button>}
       <p className="mt-2 text-xs text-ink-500">{m.checkIn ? `Vào ca lúc ${m.checkIn}` : "Chưa vào ca"}{m.inSchool ? " · 📍 Đang ở trong trường" : ""}</p>
       {err && <p className="mt-2 text-sm text-rose-500" role="alert">{err}</p>}</div>
-    {m.sub && <div className="rounded-2xl border border-peach-300 bg-peach-50 p-3 text-sm"><b className="text-peach-600">↔ Trông thay hôm nay</b><p className="mt-1">Trông <b>{m.sub.className}</b> thay {m.sub.absent} ({m.sub.reason})</p></div>}
+    {m.sub && <div className="rounded-2xl border border-peach-300 bg-peach-50 p-3 text-sm"><b className="text-peach-600">↔ Trông thay hôm nay</b><p className="mt-1">Trông <b>{m.sub.className}</b> thay {m.sub.absent}{m.sub.reason.trim() ? ` (${m.sub.reason.trim()})` : ""}</p></div>}
     <div className="card !p-3"><b>Tuần này</b><div className="mt-2 grid grid-cols-5 gap-1 text-center text-xs">{m.week.map((d, i) => <div key={d.date} className={`rounded-lg py-2 ${ST_UI[d.status].cls}`}>{WD[i]}<br />{d.status === "ok" ? "✓" : d.status === "none" ? "…" : ST_UI[d.status].label}</div>)}</div></div>
     {lmsg && <p className="rounded-xl bg-mint-50 p-3 text-sm text-mint-700" role="status">{lmsg}</p>}
     {leave ? <LeaveForm onCancel={() => setLeave(false)} onDone={() => { setLeave(false); setLmsg("Đã gửi đơn, Ban giám hiệu sẽ được báo"); myLeaves().then(setMine).catch(() => {}) }} />
